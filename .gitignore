@@ -5,3 +5,13 @@
 .cache/
 dist/
 .DS_Store
+
+# App data and logs: these live in ~/Library/Application Support/ClipboardOpt
+# and must never be committed, even if copied here for debugging.
+*.log
+*.jsonl
+decisions.log
+history.json
+profile.json
+last-jev-request.json
+jev-*.json
