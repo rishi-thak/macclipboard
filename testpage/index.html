@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apply: Software Engineer · Test Co</title>
+<style>
+  :root {
+    --bg: #f5f6f8; --card: #ffffff; --fg: #1b2230; --muted: #5d6676; --line: #cfd5de;
+    --accent: #2f6fdb; --ok: #0f7a5c; --ok-soft: #e3f3ed; --warn: #b35c00; --warn-soft: #fbefe1;
+    --mono: ui-monospace, Menlo, monospace;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #12161d; --card: #1b212b; --fg: #e4e8ef; --muted: #9aa3b2; --line: #384152;
+      --accent: #6ea0ff; --ok: #4fd1a5; --ok-soft: #15302a; --warn: #f0a24c; --warn-soft: #33261a;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.5 -apple-system, "Helvetica Neue", sans-serif; }
+  main { max-width: 1100px; margin: 0 auto; padding: 28px 20px 60px; display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 24px; align-items: start; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+  header { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 6px; }
+  h1 { margin: 0; font-size: 24px; }
+  h2 { margin: 0 0 4px; font-size: 16px; }
+  p { margin: 0; color: var(--muted); max-width: 70ch; }
+  section { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; display: flex; flex-direction: column; gap: 14px; }
+  .col { display: flex; flex-direction: column; gap: 24px; min-width: 0; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 14px 16px; }
+  .field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  label, .q { font-weight: 600; font-size: 13px; }
+  .expect { font: 11px var(--mono); color: var(--muted); }
+  .expect b { font-weight: 600; }
+  .local { color: var(--ok); }
+  .jev { color: var(--warn); }
+  input, textarea { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--bg); color: var(--fg); width: 100%; }
+  input:focus, textarea:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+  input.filled, textarea.filled { border-color: var(--ok); background: var(--ok-soft); }
+  textarea { min-height: 70px; resize: vertical; }
+  .copies { display: flex; flex-wrap: wrap; gap: 8px; }
+  button { font: 13px var(--mono); padding: 6px 10px; border-radius: 7px; border: 1px solid var(--line); background: var(--bg); color: var(--fg); cursor: pointer; }
+  button:hover { border-color: var(--accent); }
+  button.done { border-color: var(--ok); color: var(--ok); }
+  #pastezone { min-height: 120px; border: 2px dashed var(--line); border-radius: 10px; padding: 12px; display: flex; flex-direction: column; gap: 8px; outline: none; }
+  #pastezone:focus { border-color: var(--accent); }
+  #pastezone img { max-width: 100%; max-height: 220px; border-radius: 6px; align-self: flex-start; }
+  .types { font: 12px var(--mono); color: var(--muted); }
+  aside { position: sticky; top: 16px; }
+  #log { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; max-height: 70vh; overflow: auto; }
+  #log li { font-size: 13px; border-left: 3px solid var(--ok); padding: 2px 0 2px 8px; }
+  #log li .meta { font: 11px var(--mono); color: var(--muted); }
+  #log li.empty { border-left-color: var(--line); color: var(--muted); }
+  kbd { font: 12px var(--mono); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; background: var(--bg); }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Apply: Software Engineer at Test Co</h1>
+    <p>ClipboardOpt test form. Click into a field and press <kbd>⌘</kbd><kbd>⌥</kbd><kbd>V</kbd>. Each field says what should happen. <span class="local">Green</span> = decided on your Mac, <span class="jev">orange</span> = asks Jev. The log on the right shows what landed where.</p>
+  </header>
+
+  <div class="col">
+    <section>
+      <h2>1. Put some things in your clipboard history</h2>
+      <p>Click a few of these (each one is a copy), or copy anything yourself. All values are fake. A copy of the right kind from the last 30 seconds beats your profile.</p>
+      <div class="copies">
+        <button data-copy="work@company.com">work@company.com</button>
+        <button data-copy="(415) 555-0134">(415) 555-0134</button>
+        <button data-copy="https://www.linkedin.com/in/someone-else">linkedin.com/in/someone-else</button>
+        <button data-copy="https://github.com/janedoe">github.com/janedoe</button>
+        <button data-copy="https://example.dev">https://example.dev</button>
+        <button data-copy="Jane Doe">Jane Doe</button>
+        <button data-copy="I build tools that remove small, repeated chores.">a sentence</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>2. Clear fields</h2>
+      <p>These match on your Mac. This page looks like a job application, so after Jev confirms that once, your profile values win. When the panel opens for a field your profile doesn't have yet, your pick is saved, and the next press fills it instantly.</p>
+      <div class="grid">
+        <div class="field">
+          <label for="email">Email *</label>
+          <input id="email" name="email" type="email">
+          <span class="expect local">email → your profile, or the one email copied</span>
+        </div>
+        <div class="field">
+          <label for="phone">Phone</label>
+          <input id="phone" name="phone" type="tel">
+          <span class="expect local">phone → profile or the copied number</span>
+        </div>
+        <div class="field">
+          <label for="linkedin">LinkedIn Profile URL</label>
+          <input id="linkedin" name="urls[LinkedIn]">
+          <span class="expect local">linkedin</span>
+        </div>
+        <div class="field">
+          <label for="github">GitHub</label>
+          <input id="github" name="github">
+          <span class="expect local">github</span>
+        </div>
+        <div class="field">
+          <label for="portfolio">Portfolio</label>
+          <input id="portfolio" name="portfolio">
+          <span class="expect local">website → a copied URL</span>
+        </div>
+        <div class="field">
+          <label for="first_name">First Name</label>
+          <input id="first_name" name="first_name">
+          <span class="expect local">first name → profile, else Jev</span>
+        </div>
+        <div class="field">
+          <label for="last_name">Last Name</label>
+          <input id="last_name" name="last_name">
+          <span class="expect local">last name → profile, else Jev</span>
+        </div>
+        <div class="field">
+          <div class="q">Mobile number</div>
+          <input id="unlinked" aria-describedby="">
+          <span class="expect local">label not linked: read from nearby text → phone</span>
+        </div>
+        <div class="field">
+          <input id="contact_a" placeholder="Email address">
+          <span class="expect local">placeholder only → email</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>3. Unclear fields</h2>
+      <p>These go to Jev. Expect a paste when one value clearly fits, otherwise the panel with the best guess first. Press <kbd>⌘</kbd><kbd>⌥</kbd><kbd>V</kbd> twice quickly to undo and pick.</p>
+      <div class="grid">
+        <div class="field">
+          <label for="reach">How can we reach you?</label>
+          <input id="reach">
+          <span class="expect jev">Jev: email or phone</span>
+        </div>
+        <div class="field">
+          <label for="links">Website, LinkedIn or GitHub</label>
+          <input id="links">
+          <span class="expect jev">Jev: two kinds named</span>
+        </div>
+        <div class="field">
+          <label for="work">Where can we see your work?</label>
+          <input id="work" placeholder="https://">
+          <span class="expect jev">Jev: likely a URL</span>
+        </div>
+        <div class="field">
+          <label for="pronounce">How do you pronounce your name?</label>
+          <input id="pronounce">
+          <span class="expect jev">Jev: nothing should fit → panel</span>
+        </div>
+        <div class="field" style="grid-column: 1 / -1">
+          <label for="why">Why do you want to work here?</label>
+          <textarea id="why"></textarea>
+          <span class="expect jev">Jev: the sentence, if copied</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>4. Should be left alone</h2>
+      <div class="grid">
+        <div class="field">
+          <label for="password">Password</label>
+          <input id="password" type="password" autocomplete="off">
+          <span class="expect">password field → shortcut passes through, nothing pasted</span>
+        </div>
+        <div class="field">
+          <span class="q">Not a field</span>
+          <p style="font-size:13px">Click here (on this text) and press the shortcut: it should pass through.</p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>5. Image paste still works</h2>
+      <p>Copy a screenshot (or any image), press <kbd>⌘</kbd><kbd>⌥</kbd><kbd>V</kbd> in the Email field above, then click in the box below and press plain <kbd>⌘</kbd><kbd>V</kbd>. The image should show here with its original types.</p>
+      <div id="pastezone" tabindex="0" aria-label="Image paste area"><span class="types">Click here, then ⌘V</span></div>
+    </section>
+  </div>
+
+  <aside>
+    <section>
+      <div class="row" style="justify-content: space-between">
+        <h2>What landed where</h2>
+        <button id="reset">Clear form</button>
+      </div>
+      <ul id="log"><li class="empty">Nothing pasted yet</li></ul>
+    </section>
+  </aside>
+</main>
+
+<script>
+  const log = document.getElementById('log');
+
+  function labelFor(el) {
+    if (el.labels && el.labels[0]) return el.labels[0].textContent.trim();
+    const prev = el.previousElementSibling;
+    if (prev && prev.classList.contains('q')) return prev.textContent.trim() + ' (unlinked label)';
+    return el.placeholder ? `placeholder "${el.placeholder}"` : el.id;
+  }
+
+  function addLog(title, detail) {
+    const empty = log.querySelector('.empty');
+    if (empty) empty.remove();
+    const li = document.createElement('li');
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    li.innerHTML = '<div></div><div class="meta"></div>';
+    li.firstChild.textContent = title;
+    li.lastChild.textContent = `${time} · ${detail}`;
+    log.prepend(li);
+  }
+
+  // Log each paste into a field; ClipboardOpt's paste arrives as a normal paste.
+  document.querySelectorAll('input, textarea').forEach(el => {
+    el.addEventListener('input', e => {
+      el.classList.toggle('filled', el.value.length > 0);
+      if (e.inputType === 'insertFromPaste' || e.inputType === 'historyUndo') {
+        const value = el.type === 'password' ? '•••' : el.value;
+        const shown = value.length > 60 ? value.slice(0, 60) + '…' : value;
+        addLog(`${labelFor(el)}: ${shown || '(empty)'}`, e.inputType === 'historyUndo' ? 'undone' : 'pasted');
+      }
+    });
+  });
+
+  // Copy buttons (fake values) so there's something in history.
+  document.querySelectorAll('[data-copy]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const text = btn.dataset.copy;
+      try {
+        await navigator.clipboard.writeText(text);
+      } catch {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+      btn.classList.add('done');
+      setTimeout(() => btn.classList.remove('done'), 1200);
+    });
+  });
+
+  // Plain Cmd+V target: shows every type on the clipboard and any image.
+  const zone = document.getElementById('pastezone');
+  zone.addEventListener('paste', e => {
+    e.preventDefault();
+    const data = e.clipboardData;
+    zone.innerHTML = '';
+    const types = document.createElement('div');
+    types.className = 'types';
+    types.textContent = 'Types: ' + (Array.from(data.types).join(', ') || '(none)');
+    zone.appendChild(types);
+    let images = 0;
+    for (const item of data.items) {
+      if (item.kind === 'file' && item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        zone.appendChild(img);
+        const info = document.createElement('div');
+        info.className = 'types';
+        info.textContent = `${item.type}, ${(file.size / 1024).toFixed(1)} KB`;
+        zone.appendChild(info);
+        images++;
+      }
+    }
+    if (!images) {
+      const text = document.createElement('div');
+      text.textContent = data.getData('text/plain') || '(no image or text)';
+      zone.appendChild(text);
+    }
+    addLog(images ? `Image pasted (${images})` : 'Plain ⌘V: no image', 'paste area');
+  });
+
+  document.getElementById('reset').addEventListener('click', () => {
+    document.querySelectorAll('input, textarea').forEach(el => { el.value = ''; el.classList.remove('filled'); });
+    zone.innerHTML = '<span class="types">Click here, then ⌘V</span>';
+    log.innerHTML = '<li class="empty">Nothing pasted yet</li>';
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,344 @@
+<title>Clipboardopt Architecture</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one narrow reading column; diagrams are tall and vertical so they read on a phone. */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --fg: #1b2230;
+  --muted: #5d6676;
+  --line: #c9cfd9;
+  --arrow: #495366;
+  --fast: #0f7a5c;
+  --fast-soft: #e3f3ed;
+  --net: #b35c00;
+  --net-soft: #fbefe1;
+  --code-bg: #eef1f5;
+  --font-body: "IBM Plex Sans", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12161d; --surface: #1b212b; --fg: #e4e8ef; --muted: #9aa3b2; --line: #384152;
+    --arrow: #aab3c2; --fast: #4fd1a5; --fast-soft: #15302a; --net: #f0a24c; --net-soft: #33261a;
+    --code-bg: #1b212b; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12161d; --surface: #1b212b; --fg: #e4e8ef; --muted: #9aa3b2; --line: #384152;
+  --arrow: #aab3c2; --fast: #4fd1a5; --fast-soft: #15302a; --net: #f0a24c; --net-soft: #33261a;
+  --code-bg: #1b212b; color-scheme: dark;
+}
+body {
+  background: var(--bg); color: var(--fg); font-family: var(--font-body);
+  font-size: 15px; line-height: 1.55;
+}
+main {
+  max-width: 720px; margin: 0 auto;
+  padding-block: 32px 64px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 40px;
+}
+header { display: flex; flex-direction: column; gap: 8px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin: 0; }
+h1 { font-size: 28px; line-height: 1.2; font-weight: 600; margin: 0; text-wrap: balance; }
+h2 { font-size: 19px; font-weight: 600; margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 65ch; }
+.lede { color: var(--muted); }
+section { display: flex; flex-direction: column; gap: 14px; }
+.key { display: inline-flex; gap: 10px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.key span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 18px; height: 3px; border-radius: 2px; display: inline-block; }
+.sw-fast { background: var(--fast); }
+.sw-net { background: var(--net); }
+
+figure { margin: 0; display: flex; flex-direction: column; gap: 10px; }
+.diagram { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 8px; }
+.diagram svg { display: block; width: 100%; max-width: 560px; height: auto; margin: 0 auto; }
+figcaption { font-size: 13px; color: var(--muted); max-width: 65ch; }
+
+/* SVG parts, styled from page tokens so both themes work */
+.box { fill: var(--surface); stroke: var(--line); stroke-width: 1.25; }
+.box-fast { fill: var(--fast-soft); stroke: var(--fast); stroke-width: 1.25; }
+.box-net { fill: var(--net-soft); stroke: var(--net); stroke-width: 1.25; }
+.box-mute { fill: var(--bg); stroke: var(--line); stroke-width: 1.25; stroke-dasharray: 4 3; }
+.zone { fill: none; stroke: var(--net); stroke-width: 1; stroke-dasharray: 5 4; }
+.t { fill: var(--fg); font: 600 13px var(--font-body); }
+.s { fill: var(--muted); font: 400 11px var(--font-body); }
+.m { fill: var(--muted); font: 400 11px var(--font-mono); }
+.lbl { fill: var(--arrow); font: 500 11px var(--font-body); }
+.lbl-fast { fill: var(--fast); font: 600 11px var(--font-body); letter-spacing: .02em; }
+.lbl-net { fill: var(--net); font: 600 11px var(--font-body); }
+.zone-lbl { fill: var(--net); font: 500 10px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; }
+.e { fill: none; stroke: var(--arrow); stroke-width: 1.4; }
+.e-fast { fill: none; stroke: var(--fast); stroke-width: 2.2; }
+.e-net { fill: none; stroke: var(--net); stroke-width: 1.6; }
+.ah { fill: var(--arrow); }
+.ah-fast { fill: var(--fast); }
+.ah-net { fill: var(--net); }
+
+.table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); }
+table { border-collapse: collapse; width: 100%; font-size: 13.5px; min-width: 520px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+th { font-weight: 600; font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+tr:last-child td { border-bottom: 0; }
+td code, p code, li code { font-family: var(--font-mono); font-size: 12.5px; }
+.pill { display: inline-block; font-size: 12px; font-weight: 600; padding: 1px 8px; border-radius: 999px; white-space: nowrap; }
+.p-fast { background: var(--fast-soft); color: var(--fast); }
+.p-net { background: var(--net-soft); color: var(--net); }
+.p-panel { background: var(--code-bg); color: var(--fg); border: 1px solid var(--line); }
+
+pre { margin: 0; overflow-x: auto; background: var(--code-bg); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; font: 12.5px/1.5 var(--font-mono); }
+ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; max-width: 65ch; }
+.mod td:first-child { font-family: var(--font-mono); font-size: 12.5px; white-space: nowrap; }
+</style>
+
+<main>
+  <header>
+    <p class="eyebrow">clipboardoptimization · proposal · Nov 2</p>
+    <h1>Clipboardopt Architecture</h1>
+    <p class="lede">A background Mac app that keeps your last 10 text copies and, on Cmd+Opt+V in Safari, pastes the one that fits the field you're in. Decides on your Mac whenever it can, and asks Jev only when the field is unclear.</p>
+  </header>
+
+  <section>
+    <h2>Pressing Cmd+Opt+V</h2>
+    <div class="key">
+      <span><i class="swatch sw-fast"></i>Fast path, stays on your Mac</span>
+      <span><i class="swatch sw-net"></i>Network call to TypeSafe</span>
+    </div>
+    <figure>
+      <div class="diagram">
+        <svg viewBox="0 0 530 712" role="img" aria-label="Smart paste flow: the key press is passed through unless a text field is focused. The app reads the field and page, checks whether it's a job application, and tries to match locally. One clear match pastes immediately with no network. Unclear fields go to Jev in one request; code then pastes a clear winner or opens the history panel.">
+          <defs>
+            <marker id="arr" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path class="ah" d="M0,0 L8,4 L0,8 z"/></marker>
+            <marker id="arr-fast" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="9" markerHeight="9" markerUnits="userSpaceOnUse" orient="auto"><path class="ah-fast" d="M0,0 L8,4 L0,8 z"/></marker>
+            <marker id="arr-net" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path class="ah-net" d="M0,0 L8,4 L0,8 z"/></marker>
+          </defs>
+
+          <!-- 1 key press -->
+          <rect class="box" x="40" y="16" width="240" height="48" rx="8"/>
+          <text class="t" x="160" y="37" text-anchor="middle">Cmd+Opt+V pressed</text>
+          <text class="s" x="160" y="54" text-anchor="middle">event tap on its own thread</text>
+          <line class="e" x1="160" y1="64" x2="160" y2="94" marker-end="url(#arr)"/>
+
+          <!-- 2 text field? -->
+          <rect class="box" x="40" y="96" width="240" height="48" rx="8"/>
+          <text class="t" x="160" y="125" text-anchor="middle">Is a text field focused?</text>
+          <line class="e" x1="280" y1="120" x2="358" y2="120" marker-end="url(#arr)"/>
+          <text class="lbl" x="319" y="113" text-anchor="middle">no</text>
+          <rect class="box-mute" x="360" y="96" width="150" height="48" rx="8"/>
+          <text class="t" x="435" y="116" text-anchor="middle">Pass the key on</text>
+          <text class="s" x="435" y="133" text-anchor="middle">Finder's Move still works</text>
+          <line class="e" x1="160" y1="144" x2="160" y2="174" marker-end="url(#arr)"/>
+          <text class="lbl" x="168" y="163">yes</text>
+
+          <!-- 3 read field -->
+          <rect class="box" x="40" y="176" width="240" height="60" rx="8"/>
+          <text class="t" x="160" y="198" text-anchor="middle">Read the field</text>
+          <text class="s" x="160" y="214" text-anchor="middle">label · placeholder · field type</text>
+          <text class="s" x="160" y="228" text-anchor="middle">Safari page URL + title</text>
+          <line class="e" x1="160" y1="236" x2="160" y2="266" marker-end="url(#arr)"/>
+
+          <!-- 4 job app -->
+          <rect class="box" x="40" y="268" width="240" height="60" rx="8"/>
+          <text class="t" x="160" y="290" text-anchor="middle">Job application?</text>
+          <text class="s" x="160" y="306" text-anchor="middle">known job sites, or Jev's saved</text>
+          <text class="s" x="160" y="320" text-anchor="middle">answer for this page</text>
+          <line class="e" x1="160" y1="328" x2="160" y2="358" marker-end="url(#arr)"/>
+
+          <!-- 5 local match -->
+          <rect class="box-fast" x="40" y="360" width="240" height="60" rx="8"/>
+          <text class="t" x="160" y="382" text-anchor="middle">Match on your Mac</text>
+          <text class="s" x="160" y="398" text-anchor="middle">field kind vs. your profile</text>
+          <text class="s" x="160" y="412" text-anchor="middle">and the last 10 copies</text>
+
+          <!-- fast rail -->
+          <polyline class="e-fast" points="40,390 20,390 20,666 38,666" marker-end="url(#arr-fast)"/>
+          <text class="lbl-fast" x="13" y="528" text-anchor="middle" transform="rotate(-90 13 528)">one clear match · no network</text>
+
+          <line class="e" x1="160" y1="420" x2="160" y2="450" marker-end="url(#arr)"/>
+          <text class="lbl" x="168" y="439">unclear</text>
+
+          <!-- 6 ask jev -->
+          <rect class="box-net" x="40" y="452" width="240" height="60" rx="8"/>
+          <text class="t" x="160" y="474" text-anchor="middle">Ask Jev, one request</text>
+          <text class="s" x="160" y="490" text-anchor="middle">a yes/no per candidate</text>
+          <text class="s" x="160" y="504" text-anchor="middle">plus "does anything fit?"</text>
+
+          <!-- internet zone -->
+          <rect class="zone" x="348" y="424" width="174" height="100" rx="10"/>
+          <text class="zone-lbl" x="358" y="440">internet</text>
+          <rect class="box-net" x="360" y="452" width="150" height="60" rx="8"/>
+          <text class="t" x="435" y="477" text-anchor="middle">TypeSafe API</text>
+          <text class="m" x="435" y="495" text-anchor="middle">jev-latest</text>
+
+          <line class="e-net" x1="280" y1="470" x2="358" y2="470" marker-end="url(#arr-net)"/>
+          <text class="lbl-net" x="319" y="463" text-anchor="middle">sends</text>
+          <line class="e-net" x1="360" y1="494" x2="282" y2="494" marker-end="url(#arr-net)"/>
+          <text class="lbl-net" x="319" y="508" text-anchor="middle">returns</text>
+
+          <line class="e" x1="160" y1="512" x2="160" y2="542" marker-end="url(#arr)"/>
+
+          <!-- 7 decide -->
+          <rect class="box" x="40" y="544" width="240" height="60" rx="8"/>
+          <text class="t" x="160" y="566" text-anchor="middle">Decide in code</text>
+          <text class="s" x="160" y="582" text-anchor="middle">yes above 0.7, no below 0.3</text>
+          <text class="s" x="160" y="596" text-anchor="middle">exactly one winner?</text>
+          <line class="e" x1="280" y1="574" x2="358" y2="574" marker-end="url(#arr)"/>
+          <text class="lbl" x="319" y="567" text-anchor="middle">unsure</text>
+          <rect class="box" x="360" y="544" width="150" height="60" rx="8"/>
+          <text class="t" x="435" y="567" text-anchor="middle">History panel</text>
+          <text class="s" x="435" y="585" text-anchor="middle">best guess highlighted</text>
+          <polyline class="e" points="435,604 435,666 282,666" marker-end="url(#arr)"/>
+          <text class="lbl" x="443" y="640">you pick</text>
+
+          <line class="e" x1="160" y1="604" x2="160" y2="634" marker-end="url(#arr)"/>
+          <text class="lbl" x="168" y="623">clear winner</text>
+
+          <!-- 8 paste -->
+          <rect class="box" x="40" y="636" width="240" height="60" rx="8"/>
+          <text class="t" x="160" y="658" text-anchor="middle">Paste</text>
+          <text class="s" x="160" y="674" text-anchor="middle">set clipboard, send Cmd+V,</text>
+          <text class="s" x="160" y="688" text-anchor="middle">put your old clipboard back</text>
+        </svg>
+      </div>
+      <figcaption>Most job-application fields (Email, Phone, LinkedIn) take the green path and never leave your Mac. The orange hop happens only for unclear fields, and it's the one step whose speed we haven't measured yet.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Copying something</h2>
+    <figure>
+      <div class="diagram">
+        <svg viewBox="0 0 530 356" role="img" aria-label="Copy flow: when you copy, a watcher notices the clipboard change, drops password-manager copies and non-text, tags the item's kind on your Mac, and stores it in a 10-item history.">
+          <defs>
+            <marker id="arr2" viewBox="0 0 8 8" refX="8" refY="4" markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto"><path class="ah" d="M0,0 L8,4 L0,8 z"/></marker>
+          </defs>
+          <rect class="box" x="40" y="16" width="240" height="44" rx="8"/>
+          <text class="t" x="160" y="35" text-anchor="middle">You copy something</text>
+          <text class="s" x="160" y="51" text-anchor="middle">in any app</text>
+          <line class="e" x1="160" y1="60" x2="160" y2="84" marker-end="url(#arr2)"/>
+
+          <rect class="box" x="40" y="86" width="240" height="44" rx="8"/>
+          <text class="t" x="160" y="105" text-anchor="middle">Watcher sees the change</text>
+          <text class="s" x="160" y="121" text-anchor="middle">checks the change counter every 0.25s</text>
+          <line class="e" x1="160" y1="130" x2="160" y2="154" marker-end="url(#arr2)"/>
+
+          <rect class="box" x="40" y="156" width="240" height="44" rx="8"/>
+          <text class="t" x="160" y="175" text-anchor="middle">Skip it?</text>
+          <text class="s" x="160" y="191" text-anchor="middle">password-manager flag, or not text</text>
+          <line class="e" x1="280" y1="178" x2="358" y2="178" marker-end="url(#arr2)"/>
+          <text class="lbl" x="319" y="171" text-anchor="middle">yes</text>
+          <rect class="box-mute" x="360" y="156" width="150" height="44" rx="8"/>
+          <text class="t" x="435" y="175" text-anchor="middle">Dropped</text>
+          <text class="s" x="435" y="191" text-anchor="middle">never stored or sent</text>
+          <line class="e" x1="160" y1="200" x2="160" y2="224" marker-end="url(#arr2)"/>
+          <text class="lbl" x="168" y="215">no</text>
+
+          <rect class="box-fast" x="40" y="226" width="240" height="44" rx="8"/>
+          <text class="t" x="160" y="245" text-anchor="middle">Tag its kind on your Mac</text>
+          <text class="s" x="160" y="261" text-anchor="middle">email · phone · URL · LinkedIn · other</text>
+          <line class="e" x1="160" y1="270" x2="160" y2="294" marker-end="url(#arr2)"/>
+
+          <rect class="box" x="40" y="296" width="240" height="44" rx="8"/>
+          <text class="t" x="160" y="315" text-anchor="middle">History</text>
+          <text class="s" x="160" y="331" text-anchor="middle">newest 10, no duplicates, saved to disk</text>
+
+          <rect class="box-mute" x="360" y="296" width="150" height="44" rx="8"/>
+          <text class="t" x="435" y="315" text-anchor="middle">Profile file</text>
+          <text class="s" x="435" y="331" text-anchor="middle">your email, LinkedIn…</text>
+          <text class="lbl" x="320" y="292" text-anchor="middle">both are candidates</text>
+          <line class="e" x1="282" y1="318" x2="358" y2="318" stroke-dasharray="3 3"/>
+        </svg>
+      </div>
+      <figcaption>Tagging happens at copy time, so pressing Cmd+Opt+V never waits on it. The profile file sits next to the history and is never overwritten by copies. Images and files are never added to history and never changed: the watcher only reads.</figcaption>
+    </figure>
+  </section>
+
+  <section>
+    <h2>Decision table</h2>
+    <p>Every case has an outcome. Jev only supplies the yes/no answers; these rules live in code.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Situation</th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><td>No text field focused</td><td>Key passes through untouched</td></tr>
+          <tr><td>Plain Cmd+V, with anything on the clipboard (image, file, text)</td><td>Never touched: stock macOS paste</td></tr>
+          <tr><td>Smart paste while an image or file is on the clipboard</td><td>Pastes the text, then puts the image back byte for byte</td></tr>
+          <tr><td>Job application, field is a known kind (Email, Phone, LinkedIn…), profile has it</td><td><span class="pill p-fast">Paste profile value</span></td></tr>
+          <tr><td>Same as above, but you copied that kind in the last 30 seconds</td><td><span class="pill p-fast">Paste your fresh copy</span></td></tr>
+          <tr><td>Not a job application, known kind, exactly one copy of that kind</td><td><span class="pill p-fast">Paste it</span></td></tr>
+          <tr><td>Several matching copies, or the label is unclear ("How can we reach you?")</td><td><span class="pill p-net">Ask Jev</span></td></tr>
+          <tr><td>Jev: one candidate above 0.7, the rest lower, "anything fits" above 0.7</td><td><span class="pill p-fast">Paste the winner</span></td></tr>
+          <tr><td>Jev: no candidate above 0.7, two above 0.7, or "anything fits" unclear</td><td><span class="pill p-panel">Panel, best guess first</span></td></tr>
+          <tr><td>Jev: "anything fits" below 0.3</td><td><span class="pill p-panel">Panel, nothing highlighted</span></td></tr>
+          <tr><td>Jev request fails or times out</td><td><span class="pill p-panel">Panel, with an error note</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>What Jev sees (draft)</h2>
+    <p>One request per unclear field. Each candidate gets its own question with the value written in, and the job-application question is asked only when the page isn't cached yet. Profile values are shortened here.</p>
+<pre>{
+  "model": "jev-latest",
+  "state": {
+    "page":  { "url": "jobs.ashbyhq.com/acme/…/application",
+               "title": "Software Engineer · Acme" },
+    "field": { "label": "Where can we see your work?",
+               "placeholder": "https://", "type": "url" },
+    "candidates": [ "linkedin.com/in/…", "github.com/…",
+                    "https://example.dev", "me@example.com" ]
+  },
+  "questions": {
+    "fits_0": { "type": "noul", "instructions":
+      "Does the user want to paste \"linkedin.com/in/…\" into `field`?" },
+    "fits_1": { "type": "noul", "instructions":
+      "Does the user want to paste \"github.com/…\" into `field`?" },
+    "…": "one per candidate",
+    "anything_fits": { "type": "noul", "instructions":
+      "Does any value in `candidates` belong in `field`?" },
+    "is_job_application": { "type": "noul", "instructions":
+      "Is `page` a job application form?" }
+  }
+}</pre>
+  </section>
+
+  <section>
+    <h2>Swift modules</h2>
+    <p>Same setup as SSClipboard and gitviz: Swift 6, Swift Package Manager, AppKit, no outside libraries, started at login.</p>
+    <div class="table-wrap">
+      <table class="mod">
+        <thead><tr><th>File</th><th>Job</th></tr></thead>
+        <tbody>
+          <tr><td>HotKeyManager</td><td>Catches Cmd+Opt+V (same event-tap approach as SSClipboard)</td></tr>
+          <tr><td>ClipboardWatcher</td><td>Checks the change counter, skips password-manager and non-text copies</td></tr>
+          <tr><td>ClipboardHistory</td><td>Newest 10 text items, no duplicates, saved to disk</td></tr>
+          <tr><td>ItemClassifier</td><td>Tags email, phone, URL, LinkedIn on your Mac</td></tr>
+          <tr><td>Profile</td><td>Loads your preset values from a file outside the code</td></tr>
+          <tr><td>FieldReader</td><td>Accessibility: focused field's label, placeholder, type; Safari URL and title</td></tr>
+          <tr><td>ContextDetector</td><td>Job-site list plus a saved answer per page</td></tr>
+          <tr><td>SmartPasteEngine</td><td>The decision table above</td></tr>
+          <tr><td>JevQuestions</td><td>All question wording and thresholds in one place</td></tr>
+          <tr><td>JevClient</td><td>Calls the TypeSafe API, reads <code>JEV_API_KEY</code></td></tr>
+          <tr><td>Paster</td><td>Sets the clipboard, sends Cmd+V, restores the old clipboard</td></tr>
+          <tr><td>HistoryPanel</td><td>The picker window, keyboard-first</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Not verified yet</h2>
+    <ul>
+      <li>How fast Jev answers from your Mac. First thing to measure.</li>
+      <li>How well Safari reports labels on real job sites (Greenhouse, Lever, Workday, Ashby).</li>
+      <li>Whether restoring your old clipboard right after Cmd+V ever races the paste in some apps.</li>
+    </ul>
+  </section>
+</main>
