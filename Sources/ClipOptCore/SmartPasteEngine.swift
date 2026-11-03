@@ -154,10 +154,18 @@ public enum SmartPasteEngine {
         if winners.count == 1, let anything, anything >= yes {
             return .paste(plan.candidates[winners[0]])
         }
+        let kind = input.fieldKind
+        // Only kinds with a clipboard type (email, phone, links) were filtered before Jev,
+        // so only for those does the count mean "N of this kind copied".
+        let countable = !kind.itemKinds.isEmpty
+        if !countable, kind != .unknown, winners.isEmpty {
+            return .showPanel(highlight: nil, candidates: panelCandidates(input),
+                              note: "No \(kind.displayName) copied yet")
+        }
         let best = scores.indices.max { scores[$0] < scores[$1] }.map { plan.candidates[$0] }
         let note: String
-        if input.fieldKind != .unknown, plan.candidates.count > 1 {
-            note = "\(plan.candidates.count) \(input.fieldKind.displayName)s copied. Which one?"
+        if countable, plan.candidates.count > 1 {
+            note = "\(plan.candidates.count) \(kind.displayName)s copied. Which one?"
         } else {
             note = winners.count > 1 ? "A few of these could fit" : "Not sure which one fits"
         }

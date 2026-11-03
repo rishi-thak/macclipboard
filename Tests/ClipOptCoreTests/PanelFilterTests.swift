@@ -46,3 +46,24 @@ import Testing
         #expect(SmartPasteEngine.panelCandidates(input(kind: .phone, label: "Phone", history: mixed)).count == mixed.count)
     }
 }
+
+@Suite struct NameNoteTests {
+    @Test func nameFieldWithNoNameSaysSo() {
+        let now = Date(timeIntervalSince1970: 1_000_000)
+        let texts = ["a@example.com", "https://github.com/janedoe", "some notes", "(415) 555-0134"]
+        let items = texts.map { ClipItem(text: $0, kind: ItemClassifier.classify($0), copiedAt: now.addingTimeInterval(-600)) }
+        let input = SmartPasteInput(field: FieldInfo(label: "First name"), fieldKind: .firstName,
+                                    context: .jobApplication, profile: Profile(), history: items, now: now)
+        guard case .askJev(let plan) = SmartPasteEngine.decideLocally(input) else {
+            Issue.record("expected Jev"); return
+        }
+        var nouls = Dictionary(uniqueKeysWithValues: plan.candidates.indices.map { (JevQuestions.ID.fits($0), 0.05) })
+        nouls[JevQuestions.ID.anythingFits] = 0.34
+        guard case .showPanel(let highlight, _, let note) =
+                SmartPasteEngine.decide(afterJev: JevAnswers(nouls: nouls), plan: plan, input: input) else {
+            Issue.record("expected panel"); return
+        }
+        #expect(note == "No first name copied yet")
+        #expect(highlight == nil)
+    }
+}
