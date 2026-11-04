@@ -60,3 +60,15 @@ import Testing
         #expect(JobSiteDetector.pageKey(for: url) == "file:///Users/me/testpage/index.html")
     }
 }
+
+@Suite struct CorrectionTests {
+    @Test func knownFieldsCanBeCorrectedEvenWhenSaved() {
+        let input = SmartPasteInput(field: FieldInfo(label: "LinkedIn"), fieldKind: .linkedin, context: .jobApplication,
+                                    profile: Profile(linkedin: "https://www.linkedin.com/in/someone-else"), history: [])
+        #expect(SmartPasteEngine.learnableKind(input) == nil)
+        #expect(SmartPasteEngine.correctableKind(input) == .linkedin)
+        var unknown = input
+        unknown.fieldKind = .unknown
+        #expect(SmartPasteEngine.correctableKind(unknown) == nil)
+    }
+}

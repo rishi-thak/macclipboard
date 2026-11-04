@@ -74,8 +74,9 @@ final class SmartPasteCoordinator {
             lastSmartPaste = nil
             KeyPoster.undo()
             DecisionLog.write("kind=\(input.fieldKind.rawValue) double_press → undo + panel")
+            // A double press means the paste was wrong, so the pick also replaces a saved value.
             showPanel(candidates: SmartPasteEngine.panelCandidates(input), highlight: nil, note: "Pick the right one",
-                      anchor: field.frame, learn: SmartPasteEngine.learnableKind(input))
+                      anchor: field.frame, learn: SmartPasteEngine.correctableKind(input), replace: true)
             return
         }
 
@@ -166,7 +167,8 @@ final class SmartPasteCoordinator {
 
     /// - Parameter learn: when set, your pick is saved to the profile as this kind,
     ///   so the next field like this one fills without the panel.
-    private func showPanel(candidates: [Candidate], highlight: Candidate?, note: String?, anchor: CGRect?, learn: FieldKind?) {
+    private func showPanel(candidates: [Candidate], highlight: Candidate?, note: String?, anchor: CGRect?,
+                           learn: FieldKind?, replace: Bool = false) {
         var ordered = candidates
         if let highlight, let index = ordered.firstIndex(of: highlight) {
             ordered.insert(ordered.remove(at: index), at: 0)
@@ -180,7 +182,9 @@ final class SmartPasteCoordinator {
         }
         var header = note
         if let learn {
-            let hint = "Your pick is saved as your \(learn.displayName)"
+            let hasSaved = Profile.load(from: AppPaths.profile).value(for: learn) != nil
+            let hint = hasSaved ? "Your pick replaces your saved \(learn.displayName)"
+                                : "Your pick is saved as your \(learn.displayName)"
             header = note.map { "\($0) · \(hint)" } ?? hint
         }
         let entries = ordered.map { HistoryPanelController.Entry(text: $0.text, detail: Self.detail(for: $0)) }
@@ -189,19 +193,20 @@ final class SmartPasteCoordinator {
                 // Let Safari's field take focus back before pasting.
                 try? await Task.sleep(for: .milliseconds(60))
                 self?.paster.paste(entry.text)
-                if let learn { self?.learn(entry.text, as: learn) }
+                if let learn { self?.learn(entry.text, as: learn, replace: replace) }
             }
         }
     }
 
-    private func learn(_ text: String, as kind: FieldKind) {
+    private func learn(_ text: String, as kind: FieldKind, replace: Bool) {
         guard SmartPasteEngine.pickFits(text, kind: kind) else {
             DecisionLog.write("  pick not saved: doesn't look like a \(kind.displayName)")
             return
         }
         var profile = Profile.load(from: AppPaths.profile)
-        guard profile.value(for: kind) == nil else { return }
-        profile.set(text.trimmingCharacters(in: .whitespacesAndNewlines), for: kind)
+        let value = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard replace || profile.value(for: kind) == nil, profile.value(for: kind) != value else { return }
+        profile.set(value, for: kind)
         do {
             try profile.save(to: AppPaths.profile)
             DecisionLog.write("  saved pick to profile.\(kind.rawValue)")

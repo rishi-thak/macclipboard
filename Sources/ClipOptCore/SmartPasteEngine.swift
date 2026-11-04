@@ -179,6 +179,11 @@ public enum SmartPasteEngine {
         return kind
     }
 
+    /// The kind a correction pick (after a double press) is saved as, replacing any saved value.
+    public static func correctableKind(_ input: SmartPasteInput) -> FieldKind? {
+        input.fieldKind == .unknown ? nil : input.fieldKind
+    }
+
     /// Only saves picks that look like the field: a LinkedIn URL for LinkedIn,
     /// a short single line for a name.
     public static func pickFits(_ text: String, kind: FieldKind) -> Bool {
