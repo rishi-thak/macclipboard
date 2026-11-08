@@ -110,8 +110,13 @@ private func input(_ field: FieldInfo, context: JobContext, history: [ClipItem],
         #expect(highlight == plan.candidates[1])
     }
 
-    @Test func unsettledAnythingFitsShowsPanel() {
+    @Test func oneWinnerPastesEvenWhenAnythingFitsIsUnsettled() {
         let decision = SmartPasteEngine.decide(afterJev: answers([0.9, 0.1], anything: 0.5), plan: plan, input: emailInput)
+        #expect(decision == .paste(plan.candidates[0]))
+    }
+
+    @Test func noWinnerShowsPanelWithBestGuess() {
+        let decision = SmartPasteEngine.decide(afterJev: answers([0.6, 0.1], anything: 0.5), plan: plan, input: emailInput)
         guard case .showPanel(let highlight, _, _) = decision else {
             Issue.record("expected panel, got \(decision)")
             return

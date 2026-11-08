@@ -16,6 +16,8 @@ enum AppPaths {
     }
     static var history: URL { supportDirectory.appendingPathComponent("history.json") }
     static var profile: URL { supportDirectory.appendingPathComponent("profile.json") }
+    /// Your picks for questions that aren't profile fields.
+    static var answers: URL { supportDirectory.appendingPathComponent("answers.json") }
     static var envFile: URL { supportDirectory.appendingPathComponent(".env") }
     /// The exact body of the most recent Jev request, for checking what was sent.
     static var lastJevRequest: URL { supportDirectory.appendingPathComponent("last-jev-request.json") }

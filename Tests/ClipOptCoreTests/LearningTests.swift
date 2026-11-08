@@ -45,7 +45,7 @@ import Testing
             Issue.record("expected askJev")
             return
         }
-        let answers = JevAnswers(nouls: ["fits_0": 0.71, "fits_1": 0.39, "anything_fits": 0.67])
+        let answers = JevAnswers(nouls: ["fits_0": 0.65, "fits_1": 0.39, "anything_fits": 0.67])
         guard case .showPanel(let highlight, _, let note) = SmartPasteEngine.decide(afterJev: answers, plan: plan, input: input) else {
             Issue.record("expected panel")
             return

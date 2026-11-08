@@ -4,6 +4,8 @@ public struct Candidate: Sendable, Equatable {
     public enum Source: Sendable, Equatable {
         case profile(FieldKind)
         case history(UUID)
+        /// Your earlier pick for this same question.
+        case remembered
     }
 
     public let text: String
@@ -44,15 +46,18 @@ public struct SmartPasteInput: Sendable {
     public var context: JobContext
     public var profile: Profile
     public var history: [ClipItem]
+    /// What you picked last time for this question, if anything.
+    public var remembered: String?
     public var now: Date
 
     public init(field: FieldInfo, fieldKind: FieldKind, context: JobContext,
-                profile: Profile, history: [ClipItem], now: Date = Date()) {
+                profile: Profile, history: [ClipItem], remembered: String? = nil, now: Date = Date()) {
         self.field = field
         self.fieldKind = fieldKind
         self.context = context
         self.profile = profile
         self.history = history
+        self.remembered = remembered
         self.now = now
     }
 }
@@ -66,6 +71,9 @@ public enum SmartPasteEngine {
     public static func allCandidates(_ input: SmartPasteInput) -> [Candidate] {
         var seen = Set<String>()
         var result: [Candidate] = []
+        if let remembered = input.remembered, seen.insert(remembered).inserted {
+            result.append(Candidate(text: remembered, source: .remembered))
+        }
         for item in input.history where seen.insert(item.text).inserted {
             result.append(Candidate(item))
         }
@@ -97,6 +105,9 @@ public enum SmartPasteEngine {
         let askJob = input.context == .unknown
 
         guard kind != .unknown else {
+            if let remembered = input.remembered {
+                return .paste(Candidate(text: remembered, source: .remembered))
+            }
             if all.isEmpty || !input.field.hasHints {
                 return .showPanel(highlight: nil, candidates: all, note: nil)
             }
@@ -150,8 +161,9 @@ public enum SmartPasteEngine {
             return .showPanel(highlight: nil, candidates: panelCandidates(input),
                               note: "Nothing copied seems to fit this field")
         }
+        // One clear winner is enough; "anything fits" only vetoes when it's a clear no (above).
         let winners = scores.indices.filter { scores[$0] >= yes }
-        if winners.count == 1, let anything, anything >= yes {
+        if winners.count == 1 {
             return .paste(plan.candidates[winners[0]])
         }
         let kind = input.fieldKind

@@ -61,13 +61,16 @@ final class SmartPasteCoordinator {
         }
 
         let profile = Profile.load(from: AppPaths.profile)
-        let input = SmartPasteInput(
+        var input = SmartPasteInput(
             field: field.info,
             fieldKind: FieldClassifier.classify(field.info),
             context: JobSiteDetector.context(pageURL: field.info.pageURL, savedAnswers: savedJobAnswers),
             profile: profile,
             history: history.items
         )
+        if input.fieldKind == .unknown {
+            input.remembered = FieldMemory.load(from: AppPaths.answers).answer(for: field.info)
+        }
 
         // Second press right after a smart paste: undo it and let you pick.
         if let last = lastSmartPaste, ContinuousClock.now - last.time < Self.doublePressWindow, CFEqual(last.field, field.element) {
@@ -76,7 +79,8 @@ final class SmartPasteCoordinator {
             DecisionLog.write("kind=\(input.fieldKind.rawValue) double_press → undo + panel")
             // A double press means the paste was wrong, so the pick also replaces a saved value.
             showPanel(candidates: SmartPasteEngine.panelCandidates(input), highlight: nil, note: "Pick the right one",
-                      anchor: field.frame, learn: SmartPasteEngine.correctableKind(input), replace: true)
+                      anchor: field.frame, learn: SmartPasteEngine.correctableKind(input), replace: true,
+                      question: Self.question(input))
             return
         }
 
@@ -95,13 +99,13 @@ final class SmartPasteCoordinator {
 
         case .showPanel(let highlight, let candidates, let note):
             showPanel(candidates: candidates, highlight: highlight, note: note, anchor: field.frame,
-                      learn: SmartPasteEngine.learnableKind(input))
+                      learn: SmartPasteEngine.learnableKind(input), question: Self.question(input))
 
         case .askJev(let plan):
             guard let jev else {
                 showPanel(candidates: SmartPasteEngine.panelCandidates(input), highlight: nil,
                           note: "Add JEV_API_KEY to turn on smart matching", anchor: field.frame,
-                          learn: SmartPasteEngine.learnableKind(input))
+                          learn: SmartPasteEngine.learnableKind(input), question: Self.question(input))
                 return
             }
             let body: Data
@@ -168,7 +172,7 @@ final class SmartPasteCoordinator {
     /// - Parameter learn: when set, your pick is saved to the profile as this kind,
     ///   so the next field like this one fills without the panel.
     private func showPanel(candidates: [Candidate], highlight: Candidate?, note: String?, anchor: CGRect?,
-                           learn: FieldKind?, replace: Bool = false) {
+                           learn: FieldKind?, replace: Bool = false, question: FieldInfo? = nil) {
         var ordered = candidates
         if let highlight, let index = ordered.firstIndex(of: highlight) {
             ordered.insert(ordered.remove(at: index), at: 0)
@@ -181,6 +185,10 @@ final class SmartPasteCoordinator {
             }
         }
         var header = note
+        if question != nil {
+            let hint = "Your pick is remembered for this question"
+            header = note.map { "\($0) · \(hint)" } ?? hint
+        }
         if let learn {
             let hasSaved = Profile.load(from: AppPaths.profile).value(for: learn) != nil
             let hint = hasSaved ? "Your pick replaces your saved \(learn.displayName)"
@@ -194,7 +202,24 @@ final class SmartPasteCoordinator {
                 try? await Task.sleep(for: .milliseconds(60))
                 self?.paster.paste(entry.text)
                 if let learn { self?.learn(entry.text, as: learn, replace: replace) }
+                if let question { self?.remember(entry.text, for: question) }
             }
+        }
+    }
+
+    /// Unrecognized fields that still describe themselves get their pick remembered by question.
+    private static func question(_ input: SmartPasteInput) -> FieldInfo? {
+        input.fieldKind == .unknown && FieldMemory.key(for: input.field) != nil ? input.field : nil
+    }
+
+    private func remember(_ text: String, for field: FieldInfo) {
+        var memory = FieldMemory.load(from: AppPaths.answers)
+        memory.remember(text, for: field)
+        do {
+            try memory.save(to: AppPaths.answers)
+            DecisionLog.write("  remembered pick for this question (\(memory.answers.count) saved)")
+        } catch {
+            Log.app.error("saving answers failed: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -233,6 +258,8 @@ final class SmartPasteCoordinator {
             let formatter = RelativeDateTimeFormatter()
             formatter.unitsStyle = .short
             return "Copied " + formatter.localizedString(for: date, relativeTo: Date())
+        case .remembered:
+            return "Your answer last time"
         }
     }
 
@@ -240,6 +267,7 @@ final class SmartPasteCoordinator {
         switch source {
         case .profile(let kind): return "profile.\(kind.rawValue)"
         case .history: return "history"
+        case .remembered: return "remembered"
         }
     }
 }
