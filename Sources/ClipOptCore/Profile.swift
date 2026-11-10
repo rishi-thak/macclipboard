@@ -11,10 +11,12 @@ public struct Profile: Codable, Sendable, Equatable {
     public var firstName: String?
     public var lastName: String?
     public var fullName: String?
+    public var zip: String?
+    public var school: String?
 
     public init(email: String? = nil, phone: String? = nil, linkedin: String? = nil,
                 github: String? = nil, website: String? = nil, firstName: String? = nil,
-                lastName: String? = nil, fullName: String? = nil) {
+                lastName: String? = nil, fullName: String? = nil, zip: String? = nil, school: String? = nil) {
         self.email = email
         self.phone = phone
         self.linkedin = linkedin
@@ -23,6 +25,8 @@ public struct Profile: Codable, Sendable, Equatable {
         self.firstName = firstName
         self.lastName = lastName
         self.fullName = fullName
+        self.zip = zip
+        self.school = school
     }
 
     public func value(for kind: FieldKind) -> String? {
@@ -37,6 +41,8 @@ public struct Profile: Codable, Sendable, Equatable {
         case .lastName: raw = lastName
         case .fullName:
             raw = nonEmpty(fullName) ?? [firstName, lastName].compactMap(nonEmpty).joined(separator: " ")
+        case .zip: raw = zip
+        case .school: raw = school
         case .unknown: raw = nil
         }
         return nonEmpty(raw)
@@ -52,6 +58,8 @@ public struct Profile: Codable, Sendable, Equatable {
         case .firstName: firstName = value
         case .lastName: lastName = value
         case .fullName: fullName = value
+        case .zip: zip = value
+        case .school: school = value
         case .unknown: break
         }
     }
@@ -65,7 +73,8 @@ public struct Profile: Codable, Sendable, Equatable {
 
     /// Every value that's set, in a fixed order.
     public var entries: [(kind: FieldKind, value: String)] {
-        let kinds: [FieldKind] = [.email, .phone, .linkedin, .github, .website, .fullName, .firstName, .lastName]
+        let kinds: [FieldKind] = [.email, .phone, .linkedin, .github, .website, .fullName, .firstName, .lastName,
+                                .zip, .school]
         return kinds.compactMap { kind in value(for: kind).map { (kind, $0) } }
     }
 
@@ -81,7 +90,7 @@ public struct Profile: Codable, Sendable, Equatable {
     public static func writeTemplateIfMissing(at url: URL) throws {
         guard !FileManager.default.fileExists(atPath: url.path) else { return }
         let template = Profile(email: "", phone: "", linkedin: "", github: "", website: "",
-                               firstName: "", lastName: "", fullName: "")
+                               firstName: "", lastName: "", fullName: "", zip: "", school: "")
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         try encoder.encode(template).write(to: url, options: .atomic)

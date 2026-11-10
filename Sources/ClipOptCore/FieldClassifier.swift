@@ -10,6 +10,8 @@ public enum FieldKind: String, Codable, Sendable, CaseIterable {
     case firstName
     case lastName
     case fullName
+    case zip
+    case school
     case unknown
 
     /// How the panel names this kind: "No LinkedIn URL copied yet".
@@ -23,6 +25,8 @@ public enum FieldKind: String, Codable, Sendable, CaseIterable {
         case .firstName: return "first name"
         case .lastName: return "last name"
         case .fullName: return "name"
+        case .zip: return "zip code"
+        case .school: return "school"
         case .unknown: return "value"
         }
     }
@@ -35,7 +39,7 @@ public enum FieldKind: String, Codable, Sendable, CaseIterable {
         case .linkedin: return [.linkedin]
         case .github: return [.github]
         case .website: return [.url]
-        case .firstName, .lastName, .fullName, .unknown: return []
+        case .firstName, .lastName, .fullName, .zip, .school, .unknown: return []
         }
     }
 }
@@ -73,6 +77,11 @@ public struct FieldInfo: Sendable, Equatable, Codable {
 }
 
 public enum FieldClassifier {
+    /// Kinds whose words also show up inside longer questions ("What year are you in
+    /// school?"), so they only count when the text is short, like a label.
+    private static let labelOnly: Set<FieldKind> = [.zip, .school]
+    private static let labelMaxWords = 6
+
     private static let rules: [(kind: FieldKind, pattern: String)] = [
         (.linkedin, #"\blinked ?in\b"#),
         (.github, #"\bgit ?hub\b"#),
@@ -82,6 +91,8 @@ public enum FieldClassifier {
         (.lastName, #"\b(last|family|sur) ?name\b"#),
         (.fullName, #"\b(full|legal|your) name\b|^name$"#),
         (.website, #"\b(website|web site|portfolio|personal site|homepage|personal url)\b"#),
+        (.zip, #"\b(zip|zip ?code|postal ?code|post ?code|postcode)\b"#),
+        (.school, #"\b(school|university|college|institution)\b"#),
     ]
 
     /// Checks the label first, then the field's id, then nearby text.
@@ -95,10 +106,15 @@ public enum FieldClassifier {
         for source in sources {
             let text = normalize(source)
             guard !text.isEmpty else { continue }
-            var kinds = Set(rules.filter { ItemClassifier.matches(text, $0.pattern) }.map(\.kind))
+            let isShort = text.split(separator: " ").count <= labelMaxWords
+            var kinds = Set(rules.filter { rule in
+                (isShort || !labelOnly.contains(rule.kind)) && ItemClassifier.matches(text, rule.pattern)
+            }.map(\.kind))
             if kinds.contains(.firstName) || kinds.contains(.lastName) {
                 kinds.remove(.fullName)
             }
+            // "School email", "University website": the school word only describes the other field.
+            if kinds.count > 1 { kinds.remove(.school) }
             if kinds.count == 1, let kind = kinds.first { return kind }
             if kinds.count > 1 { return .unknown }
         }
