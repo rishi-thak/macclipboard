@@ -11,7 +11,11 @@ Design: [docs/architecture.html](docs/architecture.html)
 3. Job application? Checked against a list of job sites (Greenhouse, Lever, Workday, Ashby…), or Jev's saved answer for the page.
 4. Decide on your Mac (`SmartPasteEngine`). A copy of the right kind made in the last 30 seconds wins; on job applications your profile value wins next; one clear match pastes right away.
 5. Unclear: one Jev request with a yes/no question per candidate. A clear winner pastes, otherwise the history panel opens with the best guess first.
-6. Pressing Cmd+Opt+V again within 1.5 s undoes the smart paste and opens the panel.
+6. Pressing Cmd+Opt+V again (after about half a second, within 1.5 s) undoes the smart paste and opens the panel. Your pick replaces the saved value.
+
+## Double tap: fill the whole form
+
+Double-tap Cmd+Opt+V in any field on a web page. Every empty text field is filled when the app is sure: your profile values (email, phone, LinkedIn, website, name, zip, school), your saved answers to questions, and fields where one Jev request finds exactly one clear match. Everything else is left for you, and a note at the top of the screen says how many. It never touches password fields or fields that already have text, and it stops if you switch apps or press the shortcut again.
 
 Panel keys: arrows, Return, 1–9/0, Esc.
 
@@ -24,6 +28,7 @@ Plain Cmd+V is never intercepted. Smart paste briefly puts text on the clipboard
 | Path | What |
 |------|------|
 | `~/Library/Application Support/ClipboardOpt/profile.json` | Your preset values (email, LinkedIn, phone…). Menu bar → Edit Profile… |
+| `~/Library/Application Support/ClipboardOpt/answers.json` | Your picks for questions that aren't profile fields ("When are you graduating?"), reused on any site. |
 | `…/history.json` | Last 10 text copies |
 | `…/.env` | `JEV_API_KEY`, copied from this folder by the install script |
 | `…/last-jev-request.json` | Exact body of the most recent Jev request |

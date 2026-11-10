@@ -162,7 +162,64 @@
     </section>
 
     <section>
-      <h2>4. Should be left alone</h2>
+      <h2>4. Fill the whole form</h2>
+      <p>Click any field on this page and double-tap <kbd>⌘</kbd><kbd>⌥</kbd><kbd>V</kbd>. Every empty field it's sure about gets filled (your profile and saved answers, plus one Jev check for the rest), and a note at the top of the screen says how many it left for you. Use <b>Clear form</b> to try again.</p>
+      <div class="grid">
+        <div class="field">
+          <label for="ff_first">First name</label>
+          <input id="ff_first" name="ff_first_name">
+          <span class="expect local">profile first name</span>
+        </div>
+        <div class="field">
+          <label for="ff_last">Last name</label>
+          <input id="ff_last" name="ff_last_name">
+          <span class="expect local">profile last name</span>
+        </div>
+        <div class="field">
+          <label for="ff_email">Email</label>
+          <input id="ff_email" type="email">
+          <span class="expect local">profile email</span>
+        </div>
+        <div class="field">
+          <label for="ff_phone">Phone</label>
+          <input id="ff_phone" type="tel">
+          <span class="expect local">profile phone</span>
+        </div>
+        <div class="field">
+          <label for="ff_linkedin">LinkedIn</label>
+          <input id="ff_linkedin">
+          <span class="expect local">profile LinkedIn</span>
+        </div>
+        <div class="field">
+          <label for="ff_site">Website</label>
+          <input id="ff_site">
+          <span class="expect local">profile website</span>
+        </div>
+        <div class="field">
+          <label for="ff_zip">Zip Code</label>
+          <input id="ff_zip">
+          <span class="expect local">profile zip</span>
+        </div>
+        <div class="field">
+          <label for="ff_school">School or University</label>
+          <input id="ff_school">
+          <span class="expect local">profile school</span>
+        </div>
+        <div class="field" style="grid-column: 1 / -1">
+          <span class="q">When are you graduating? Please list the full month and year (e.g. December 2025). ✱</span>
+          <input id="ff_grad" placeholder="Type your response">
+          <span class="expect">saved answer if you picked one before; otherwise Jev, or left for you</span>
+        </div>
+        <div class="field" style="grid-column: 1 / -1">
+          <label for="ff_why">Anything else you'd like us to know?</label>
+          <textarea id="ff_why"></textarea>
+          <span class="expect">usually left for you</span>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>5. Should be left alone</h2>
       <div class="grid">
         <div class="field">
           <label for="password">Password</label>
@@ -177,7 +234,7 @@
     </section>
 
     <section>
-      <h2>5. Image paste still works</h2>
+      <h2>6. Image paste still works</h2>
       <p>Copy a screenshot (or any image), press <kbd>⌘</kbd><kbd>⌥</kbd><kbd>V</kbd> in the Email field above, then click in the box below and press plain <kbd>⌘</kbd><kbd>V</kbd>. The image should show here with its original types.</p>
       <div id="pastezone" tabindex="0" aria-label="Image paste area"><span class="types">Click here, then ⌘V</span></div>
     </section>

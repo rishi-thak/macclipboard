@@ -25,15 +25,18 @@ final class FieldReader {
         let role = string(element, "AXRole")
         let subrole = string(element, "AXSubrole")
         guard textRoles.contains(role), subrole != "AXSecureTextField" else { return nil }
+        let (pageURL, pageTitle) = page(containing: element)
+        return FocusedField(element: element, info: info(for: element, pageURL: pageURL, pageTitle: pageTitle),
+                            frame: frame(element))
+    }
 
+    private func info(for element: AXUIElement, pageURL: String, pageTitle: String) -> FieldInfo {
         var label = [string(element, "AXTitle"), string(element, "AXDescription")]
         if let titleElement = elementAttribute(element, "AXTitleUIElement") {
             label.append(string(titleElement, "AXValue"))
             label.append(string(titleElement, "AXTitle"))
         }
-        let (pageURL, pageTitle) = page(containing: element)
-
-        let info = FieldInfo(
+        return FieldInfo(
             label: unique(label).joined(separator: " · "),
             placeholder: string(element, "AXPlaceholderValue"),
             help: string(element, "AXHelp"),
@@ -43,7 +46,61 @@ final class FieldReader {
             pageTitle: pageTitle,
             appName: NSWorkspace.shared.frontmostApplication?.localizedName ?? ""
         )
-        return FocusedField(element: element, info: info, frame: frame(element))
+    }
+
+    // MARK: - Whole form
+
+    /// Every empty, visible, non-password text field on the web page around `field`,
+    /// in page order. Empty when the field isn't on a web page.
+    func emptyFormFields(around field: FocusedField) -> [FocusedField] {
+        guard let webArea = ancestor(of: field.element, role: "AXWebArea") else { return [] }
+        let pageURL = urlString(webArea, "AXURL")
+        let title = [string(webArea, "AXTitle"), string(webArea, "AXDescription")].first { !$0.isEmpty } ?? windowTitle(of: webArea)
+
+        var found: [AXUIElement] = []
+        var visited = 0
+        // Depth-first in child order, so fields come out top to bottom.
+        var stack: [(AXUIElement, Int)] = [(webArea, 0)]
+        while let (node, depth) = stack.popLast(), visited < Self.maxNodes, found.count < Self.maxFields {
+            visited += 1
+            let role = string(node, "AXRole")
+            if textRoles.contains(role) {
+                if string(node, "AXSubrole") != "AXSecureTextField",
+                   string(node, "AXValue").isEmpty,
+                   bool(node, "AXEnabled") != false,
+                   let rect = frame(node), rect.width > 1, rect.height > 1 {
+                    found.append(node)
+                }
+                continue
+            }
+            guard depth < 60 else { continue }
+            for child in elementArray(node, "AXChildren").reversed() {
+                stack.append((child, depth + 1))
+            }
+        }
+        return found.map { FocusedField(element: $0, info: info(for: $0, pageURL: pageURL, pageTitle: title), frame: frame($0)) }
+    }
+
+    static let maxNodes = 4000
+    static let maxFields = 60
+
+    /// Asks the page to move keyboard focus to `element`. Check with `isStillFocused` before typing.
+    func focus(_ element: AXUIElement) {
+        AXUIElementSetAttributeValue(element, "AXFocused" as CFString, kCFBooleanTrue)
+    }
+
+    func isEmpty(_ element: AXUIElement) -> Bool {
+        string(element, "AXValue").isEmpty
+    }
+
+    private func ancestor(of element: AXUIElement, role: String) -> AXUIElement? {
+        var current: AXUIElement? = element
+        for _ in 0..<40 {
+            guard let node = current else { return nil }
+            if string(node, "AXRole") == role { return node }
+            current = elementAttribute(node, "AXParent")
+        }
+        return nil
     }
 
     func isStillFocused(_ field: FocusedField) -> Bool {
@@ -116,6 +173,11 @@ final class FieldReader {
             return (value as! String).trimmingCharacters(in: .whitespacesAndNewlines)
         }
         return ""
+    }
+
+    private func bool(_ element: AXUIElement, _ attribute: String) -> Bool? {
+        guard let value = copy(element, attribute), CFGetTypeID(value) == CFBooleanGetTypeID() else { return nil }
+        return CFBooleanGetValue((value as! CFBoolean))
     }
 
     private func urlString(_ element: AXUIElement, _ attribute: String) -> String {

@@ -11,6 +11,8 @@ public enum JevQuestions {
         public static func fits(_ index: Int) -> String { "fits_\(index)" }
         public static let anythingFits = "anything_fits"
         public static let isJobApplication = "is_job_application"
+        /// Form fill: candidate `candidate` for the `field`-th unclear field.
+        public static func formFits(field: Int, candidate: Int) -> String { "f\(field)_c\(candidate)" }
     }
 
     static func fits(_ value: String) -> String {
@@ -18,17 +20,17 @@ public enum JevQuestions {
     }
     static let anythingFits = "Does the user want to paste any value in `candidates` into `field`?"
     static let isJobApplication = "Is `page` a job application form?"
+
+    static func formFits(_ value: String, fieldKey: String) -> String {
+        "Does the user want to paste \"\(value)\" into `\(fieldKey)`?"
+    }
+    static func formFieldKey(_ position: Int) -> String { "field_\(position)" }
 }
 
 public enum JevRequestBuilder {
     /// Builds the exact JSON body for one smart-paste request.
     public static func body(field: FieldInfo, plan: JevPlan, model: String = JevQuestions.model) throws -> Data {
-        var fieldState: [String: String] = [:]
-        put(&fieldState, "label", field.label)
-        put(&fieldState, "placeholder", field.placeholder)
-        put(&fieldState, "help_text", field.help)
-        put(&fieldState, "html_id", field.identifier)
-        put(&fieldState, "text_near_field", field.nearbyText)
+        let fieldState = fieldState(field)
 
         var page: [String: String] = [:]
         put(&page, "url", field.pageURL)
@@ -53,6 +55,42 @@ public enum JevRequestBuilder {
 
         let body: [String: Any] = ["model": model, "state": state, "questions": questions]
         return try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys, .withoutEscapingSlashes])
+    }
+
+    /// One request for every unclear field in a form fill. Each field is its own state key
+    /// (`field_0`, `field_1`, ...) so each question can point at exactly one field.
+    public static func formBody(fields: [FieldInfo], plan: FormJevPlan, model: String = JevQuestions.model) throws -> Data {
+        var state: [String: Any] = [:]
+        let values = plan.candidates.map(clip)
+        state["candidates"] = values
+        var page: [String: String] = [:]
+        if let first = fields.first {
+            put(&page, "url", first.pageURL)
+            put(&page, "title", first.pageTitle)
+        }
+        if !page.isEmpty { state["page"] = page }
+
+        var questions: [String: Any] = [:]
+        for (position, index) in plan.fields.enumerated() {
+            let key = JevQuestions.formFieldKey(position)
+            state[key] = fieldState(fields[index])
+            for (candidate, value) in values.enumerated() {
+                questions[JevQuestions.ID.formFits(field: position, candidate: candidate)] =
+                    ["type": "noul", "instructions": JevQuestions.formFits(value, fieldKey: key)]
+            }
+        }
+        let body: [String: Any] = ["model": model, "state": state, "questions": questions]
+        return try JSONSerialization.data(withJSONObject: body, options: [.sortedKeys, .withoutEscapingSlashes])
+    }
+
+    static func fieldState(_ field: FieldInfo) -> [String: String] {
+        var state: [String: String] = [:]
+        put(&state, "label", field.label)
+        put(&state, "placeholder", field.placeholder)
+        put(&state, "help_text", field.help)
+        put(&state, "html_id", field.identifier)
+        put(&state, "text_near_field", field.nearbyText)
+        return state
     }
 
     private static func put(_ dict: inout [String: String], _ key: String, _ value: String) {

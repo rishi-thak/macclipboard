@@ -19,6 +19,11 @@ final class SmartPasteCoordinator {
     private var pending: (token: Int, field: FocusedField, input: SmartPasteInput, plan: JevPlan, started: ContinuousClock.Instant)?
 
     static let doublePressWindow: Duration = .milliseconds(1500)
+    /// Two presses this close together fill the whole form. A slower second press
+    /// (up to `doublePressWindow`) after a paste is the "wrong one, let me pick" undo.
+    static let doubleTapWindow: Duration = .milliseconds(450)
+    private var lastPress: ContinuousClock.Instant?
+    private let formFill: FormFillRunner
 
     var hasJev: Bool { jev != nil }
 
@@ -26,6 +31,7 @@ final class SmartPasteCoordinator {
         self.history = history
         self.paster = paster
         self.jev = jev
+        self.formFill = FormFillRunner(fieldReader: fieldReader, paster: paster, jev: jev)
     }
 
     // MARK: - History
@@ -50,6 +56,25 @@ final class SmartPasteCoordinator {
 
     func handleHotKey() {
         let start = ContinuousClock.now
+        let isDoubleTap = lastPress.map { start - $0 < Self.doubleTapWindow } ?? false
+        lastPress = isDoubleTap ? nil : start
+        formFill.cancel()
+
+        if isDoubleTap {
+            // The first tap already acted on the focused field; drop its panel or pending Jev answer.
+            panel.close()
+            requestToken += 1
+            pending = nil
+            guard let field = fieldReader.focusedTextField() else {
+                KeyPoster.passThrough()
+                return
+            }
+            DecisionLog.write("double_tap → form fill")
+            formFill.run(from: field, history: history.items, skip: lastSmartPaste?.field)
+            lastSmartPaste = nil
+            return
+        }
+
         if panel.isVisible {
             panel.close()
             return
