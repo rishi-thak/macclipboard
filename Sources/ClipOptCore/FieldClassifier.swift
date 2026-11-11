@@ -14,6 +14,12 @@ public enum FieldKind: String, Codable, Sendable, CaseIterable {
     case school
     case graduation
     case graduationYear
+    case address
+    case street
+    case city
+    case state
+    /// "City, State" in one box.
+    case location
     case unknown
 
     /// How the panel names this kind: "No LinkedIn URL copied yet".
@@ -31,6 +37,11 @@ public enum FieldKind: String, Codable, Sendable, CaseIterable {
         case .school: return "school"
         case .graduation: return "graduation date"
         case .graduationYear: return "graduation year"
+        case .address: return "address"
+        case .street: return "street address"
+        case .city: return "city"
+        case .state: return "state"
+        case .location: return "location"
         case .unknown: return "value"
         }
     }
@@ -43,7 +54,8 @@ public enum FieldKind: String, Codable, Sendable, CaseIterable {
         case .linkedin: return [.linkedin]
         case .github: return [.github]
         case .website: return [.url]
-        case .firstName, .lastName, .fullName, .zip, .school, .graduation, .graduationYear, .unknown: return []
+        case .firstName, .lastName, .fullName, .zip, .school, .graduation, .graduationYear,
+             .address, .street, .city, .state, .location, .unknown: return []
         }
     }
 }
@@ -83,7 +95,7 @@ public struct FieldInfo: Sendable, Equatable, Codable {
 public enum FieldClassifier {
     /// Kinds whose words also show up inside longer questions ("What year are you in
     /// school?"), so they only count when the text is short, like a label.
-    private static let labelOnly: Set<FieldKind> = [.zip, .school]
+    private static let labelOnly: Set<FieldKind> = [.zip, .school, .city, .state, .location]
     private static let labelMaxWords = 6
 
     private static let rules: [(kind: FieldKind, pattern: String)] = [
@@ -103,6 +115,12 @@ public enum FieldClassifier {
         // Not "graduate" alone: "Are you a recent graduate?" is a yes/no question.
         (.graduation, #"\bgraduat(ing|ion)\b|\b(when (will|do) you|expect(ed)? to) graduate\b|\bgrad date\b"#),
         (.graduationYear, #"\b(graduation|grad) year\b|\byear of graduation\b|\bclass of\b"#),
+        // Not "email address", "web address" or "IP address".
+        (.address, #"(?<!email )(?<!e mail )(?<!web )(?<!ip )\baddress\b"#),
+        (.street, #"\bstreet\b|\baddress line 1\b|\baddress 1\b"#),
+        (.city, #"\b(city|town)\b"#),
+        (.state, #"\b(state|province)\b"#),
+        (.location, #"\b(location|current location|where are you located|where do you live)\b"#),
     ]
 
     /// Checks the label first, then the field's id, then nearby text.
@@ -135,6 +153,20 @@ public enum FieldClassifier {
             }
             if kinds.contains(.graduation), kinds.contains(.graduationYear) {
                 kinds.remove(text.contains("month") ? .graduationYear : .graduation)
+            }
+            // "Address line 2", "Apt / Suite": not something to fill with your street address.
+            if ItemClassifier.matches(text, #"\bline 2\b|\baddress 2\b|\b(apt|apartment|suite|unit)\b"#) {
+                kinds.subtract([.address, .street])
+            }
+            if kinds.contains(.street) { kinds.remove(.address) }
+            // "Preferred location", "Office location": where you'd work, not where you live.
+            if ItemClassifier.matches(text, #"\b(preferred|desired|office|work|job|relocat\w*)\b"#) {
+                kinds.subtract([.city, .state, .location])
+            }
+            // "City, State" in one box is a location.
+            if kinds.isSuperset(of: [.city, .state]), !kinds.contains(.zip) {
+                kinds.subtract([.city, .state])
+                kinds.insert(.location)
             }
             // "Website, LinkedIn or GitHub": any of your links works, and LinkedIn is the default.
             if kinds.count > 1, kinds.contains(.linkedin), kinds.isSubset(of: [.linkedin, .website, .github]) {

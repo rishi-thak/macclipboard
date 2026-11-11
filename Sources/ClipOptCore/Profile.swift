@@ -15,11 +15,16 @@ public struct Profile: Codable, Sendable, Equatable {
     public var school: String?
     /// Month and year, like "June 2030". "Graduation year" fields get just the year.
     public var graduation: String?
+    /// Address parts. The full address is put together from them plus `zip`:
+    /// "1 Example St, Springfield IL 62701".
+    public var street: String?
+    public var city: String?
+    public var state: String?
 
     public init(email: String? = nil, phone: String? = nil, linkedin: String? = nil,
                 github: String? = nil, website: String? = nil, firstName: String? = nil,
                 lastName: String? = nil, fullName: String? = nil, zip: String? = nil, school: String? = nil,
-                graduation: String? = nil) {
+                graduation: String? = nil, street: String? = nil, city: String? = nil, state: String? = nil) {
         self.email = email
         self.phone = phone
         self.linkedin = linkedin
@@ -31,6 +36,9 @@ public struct Profile: Codable, Sendable, Equatable {
         self.zip = zip
         self.school = school
         self.graduation = graduation
+        self.street = street
+        self.city = city
+        self.state = state
     }
 
     public func value(for kind: FieldKind) -> String? {
@@ -52,6 +60,14 @@ public struct Profile: Codable, Sendable, Equatable {
             raw = nonEmpty(graduation).flatMap { value in
                 value.range(of: #"\b(19|20)\d{2}\b"#, options: .regularExpression).map { String(value[$0]) }
             }
+        case .street: raw = street
+        case .city: raw = city
+        case .state: raw = state
+        case .location:
+            raw = [city, state].compactMap(nonEmpty).joined(separator: ", ")
+        case .address:
+            let cityLine = [city, state, zip].compactMap(nonEmpty).joined(separator: " ")
+            raw = nonEmpty(street) == nil ? nil : [street, cityLine].compactMap(nonEmpty).joined(separator: ", ")
         case .unknown: raw = nil
         }
         return nonEmpty(raw)
@@ -71,6 +87,11 @@ public struct Profile: Codable, Sendable, Equatable {
         case .school: school = value
         case .graduation: graduation = value
         case .graduationYear: if nonEmpty(graduation) == nil { graduation = value }
+        case .street: street = value
+        case .city: city = value
+        case .state: state = value
+        // Put together from parts; a whole-address pick isn't split back up.
+        case .address, .location: break
         case .unknown: break
         }
     }
@@ -85,7 +106,7 @@ public struct Profile: Codable, Sendable, Equatable {
     /// Every value that's set, in a fixed order.
     public var entries: [(kind: FieldKind, value: String)] {
         let kinds: [FieldKind] = [.email, .phone, .linkedin, .github, .website, .fullName, .firstName, .lastName,
-                                .zip, .school, .graduation]
+                                .zip, .school, .graduation, .address]
         return kinds.compactMap { kind in value(for: kind).map { (kind, $0) } }
     }
 
@@ -101,7 +122,8 @@ public struct Profile: Codable, Sendable, Equatable {
     public static func writeTemplateIfMissing(at url: URL) throws {
         guard !FileManager.default.fileExists(atPath: url.path) else { return }
         let template = Profile(email: "", phone: "", linkedin: "", github: "", website: "",
-                               firstName: "", lastName: "", fullName: "", zip: "", school: "", graduation: "")
+                               firstName: "", lastName: "", fullName: "", zip: "", school: "", graduation: "",
+                               street: "", city: "", state: "")
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         try encoder.encode(template).write(to: url, options: .atomic)
