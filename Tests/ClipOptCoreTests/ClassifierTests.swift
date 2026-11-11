@@ -40,7 +40,7 @@ import Testing
         (FieldInfo(identifier: "urls[LinkedIn]"), .linkedin),
         (FieldInfo(identifier: "urls[Other]"), .website),
         (FieldInfo(label: "Website, LinkedIn or GitHub"), .unknown),
-        (FieldInfo(label: "How can we reach you?"), .unknown),
+        (FieldInfo(label: "How can we reach you?"), .email),
         (FieldInfo(nearbyText: "Mobile number"), .phone),
         (FieldInfo(), .unknown),
     ])

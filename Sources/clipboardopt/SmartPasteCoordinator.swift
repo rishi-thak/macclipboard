@@ -93,7 +93,7 @@ final class SmartPasteCoordinator {
             profile: profile,
             history: history.items
         )
-        if input.fieldKind == .unknown {
+        if input.profile.value(for: input.fieldKind) == nil {
             input.remembered = FieldMemory.load(from: AppPaths.answers).answer(for: field.info)
         }
 

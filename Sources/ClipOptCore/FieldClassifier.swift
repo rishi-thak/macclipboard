@@ -12,6 +12,8 @@ public enum FieldKind: String, Codable, Sendable, CaseIterable {
     case fullName
     case zip
     case school
+    case graduation
+    case graduationYear
     case unknown
 
     /// How the panel names this kind: "No LinkedIn URL copied yet".
@@ -27,6 +29,8 @@ public enum FieldKind: String, Codable, Sendable, CaseIterable {
         case .fullName: return "name"
         case .zip: return "zip code"
         case .school: return "school"
+        case .graduation: return "graduation date"
+        case .graduationYear: return "graduation year"
         case .unknown: return "value"
         }
     }
@@ -39,7 +43,7 @@ public enum FieldKind: String, Codable, Sendable, CaseIterable {
         case .linkedin: return [.linkedin]
         case .github: return [.github]
         case .website: return [.url]
-        case .firstName, .lastName, .fullName, .zip, .school, .unknown: return []
+        case .firstName, .lastName, .fullName, .zip, .school, .graduation, .graduationYear, .unknown: return []
         }
     }
 }
@@ -86,7 +90,9 @@ public enum FieldClassifier {
         (.linkedin, #"\blinked ?in\b"#),
         (.github, #"\bgit ?hub\b"#),
         (.email, #"\be ?mail\b"#),
-        (.phone, #"\b(phone|mobile|cell|telephone|tel)\b"#),
+        // "How can we reach you?", "Contact info": your email. A phone word wins (below).
+        (.email, #"\b(reach|contact) (you|me)\b|\bcontact (info|information|details)\b|\bbest way to (reach|contact)\b"#),
+        (.phone, #"\b(phone|mobile|cell|telephone|tel|contact number)\b"#),
         (.firstName, #"\b(first|given) ?name\b"#),
         (.lastName, #"\b(last|family|sur) ?name\b"#),
         // "Your name" only as the whole label: "How do you pronounce your name?" isn't a name field.
@@ -94,6 +100,9 @@ public enum FieldClassifier {
         (.website, #"\b(website|web site|portfolio|personal site|homepage|personal url)\b"#),
         (.zip, #"\b(zip|zip ?code|postal ?code|post ?code|postcode)\b"#),
         (.school, #"\b(school|university|college|institution)\b"#),
+        // Not "graduate" alone: "Are you a recent graduate?" is a yes/no question.
+        (.graduation, #"\bgraduat(ing|ion)\b|\b(when (will|do) you|expect(ed)? to) graduate\b|\bgrad date\b"#),
+        (.graduationYear, #"\b(graduation|grad) year\b|\byear of graduation\b|\bclass of\b"#),
     ]
 
     /// Checks the label first, then the field's id, then nearby text.
@@ -113,6 +122,19 @@ public enum FieldClassifier {
             }.map(\.kind))
             if kinds.contains(.firstName) || kinds.contains(.lastName) {
                 kinds.remove(.fullName)
+            }
+            // "Best contact number": the contact phrasing matched email, but it asks for a phone.
+            if kinds == [.email, .phone], !ItemClassifier.matches(text, #"\be ?mail\b"#) {
+                kinds = [.phone]
+            }
+            // "Graduation year" also matches graduation: it wants just the year, unless the
+            // text asks for the month too ("list the full month and year").
+            // "What year are you in school?" wants your class year, not your graduation date.
+            if ItemClassifier.matches(text, #"\byear are you in\b|\byear in (school|college)\b|\bclass standing\b"#) {
+                kinds.subtract([.graduation, .graduationYear])
+            }
+            if kinds.contains(.graduation), kinds.contains(.graduationYear) {
+                kinds.remove(text.contains("month") ? .graduationYear : .graduation)
             }
             // "School email", "University website": the school word only describes the other field.
             if kinds.count > 1 { kinds.remove(.school) }

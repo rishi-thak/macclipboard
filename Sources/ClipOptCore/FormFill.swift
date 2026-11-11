@@ -51,7 +51,7 @@ public enum FormFiller {
             let kind = FieldClassifier.classify(field)
             if let value = profile.value(for: kind) {
                 plan.fills[index] = Fill(text: value, source: .profile(kind))
-            } else if kind == .unknown, let answer = memory.answer(for: field) {
+            } else if let answer = memory.answer(for: field) {
                 plan.fills[index] = Fill(text: answer, source: .remembered)
             } else if FieldMemory.key(for: field) != nil {
                 plan.unclear.append(index)

@@ -50,7 +50,7 @@ private func input(_ field: FieldInfo, context: JobContext, history: [ClipItem],
 
     @Test func unclearLabelAsksJevWithEverything() {
         let decision = SmartPasteEngine.decideLocally(input(
-            FieldInfo(label: "How can we reach you?"), context: .jobApplication,
+            FieldInfo(label: "Anything else we should know?"), context: .jobApplication,
             history: [item("hello", secondsAgo: 60)]))
         guard case .askJev(let plan) = decision else {
             Issue.record("expected askJev, got \(decision)")

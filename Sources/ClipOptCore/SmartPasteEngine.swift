@@ -124,6 +124,11 @@ public enum SmartPasteEngine {
             return .paste(Candidate(text: profileValue, source: .profile(kind)))
         }
 
+        // Nothing in the profile for this kind, but you answered this exact question before.
+        if profileValue == nil, let remembered = input.remembered {
+            return .paste(Candidate(text: remembered, source: .remembered))
+        }
+
         var seen = Set<String>()
         var matches = sameKind.filter { seen.insert($0.text).inserted }.map(Candidate.init)
         if let profileValue, seen.insert(profileValue).inserted {

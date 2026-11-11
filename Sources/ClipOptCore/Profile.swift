@@ -13,10 +13,13 @@ public struct Profile: Codable, Sendable, Equatable {
     public var fullName: String?
     public var zip: String?
     public var school: String?
+    /// Month and year, like "June 2030". "Graduation year" fields get just the year.
+    public var graduation: String?
 
     public init(email: String? = nil, phone: String? = nil, linkedin: String? = nil,
                 github: String? = nil, website: String? = nil, firstName: String? = nil,
-                lastName: String? = nil, fullName: String? = nil, zip: String? = nil, school: String? = nil) {
+                lastName: String? = nil, fullName: String? = nil, zip: String? = nil, school: String? = nil,
+                graduation: String? = nil) {
         self.email = email
         self.phone = phone
         self.linkedin = linkedin
@@ -27,6 +30,7 @@ public struct Profile: Codable, Sendable, Equatable {
         self.fullName = fullName
         self.zip = zip
         self.school = school
+        self.graduation = graduation
     }
 
     public func value(for kind: FieldKind) -> String? {
@@ -43,6 +47,11 @@ public struct Profile: Codable, Sendable, Equatable {
             raw = nonEmpty(fullName) ?? [firstName, lastName].compactMap(nonEmpty).joined(separator: " ")
         case .zip: raw = zip
         case .school: raw = school
+        case .graduation: raw = graduation
+        case .graduationYear:
+            raw = nonEmpty(graduation).flatMap { value in
+                value.range(of: #"\b(19|20)\d{2}\b"#, options: .regularExpression).map { String(value[$0]) }
+            }
         case .unknown: raw = nil
         }
         return nonEmpty(raw)
@@ -60,6 +69,8 @@ public struct Profile: Codable, Sendable, Equatable {
         case .fullName: fullName = value
         case .zip: zip = value
         case .school: school = value
+        case .graduation: graduation = value
+        case .graduationYear: if nonEmpty(graduation) == nil { graduation = value }
         case .unknown: break
         }
     }
@@ -74,7 +85,7 @@ public struct Profile: Codable, Sendable, Equatable {
     /// Every value that's set, in a fixed order.
     public var entries: [(kind: FieldKind, value: String)] {
         let kinds: [FieldKind] = [.email, .phone, .linkedin, .github, .website, .fullName, .firstName, .lastName,
-                                .zip, .school]
+                                .zip, .school, .graduation]
         return kinds.compactMap { kind in value(for: kind).map { (kind, $0) } }
     }
 
@@ -90,7 +101,7 @@ public struct Profile: Codable, Sendable, Equatable {
     public static func writeTemplateIfMissing(at url: URL) throws {
         guard !FileManager.default.fileExists(atPath: url.path) else { return }
         let template = Profile(email: "", phone: "", linkedin: "", github: "", website: "",
-                               firstName: "", lastName: "", fullName: "", zip: "", school: "")
+                               firstName: "", lastName: "", fullName: "", zip: "", school: "", graduation: "")
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         try encoder.encode(template).write(to: url, options: .atomic)
