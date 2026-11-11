@@ -43,8 +43,9 @@ final class FormFillRunner {
 
         let infos = fields.map(\.info)
         let memory = FieldMemory.load(from: AppPaths.answers)
-        var plan = FormFiller.planLocally(fields: infos, profile: Profile.load(from: AppPaths.profile), memory: memory)
-        let jevPlan = jev == nil ? nil : FormFiller.jevPlan(plan, memory: memory, history: history)
+        let profile = Profile.load(from: AppPaths.profile)
+        var plan = FormFiller.planLocally(fields: infos, profile: profile, memory: memory)
+        let jevPlan = jev == nil ? nil : FormFiller.jevPlan(plan, memory: memory, profile: profile, history: history)
         if jevPlan == nil, plan.fills.isEmpty {
             DecisionLog.write("form_fill fields=\(fields.count) nothing_sure scan_ms=\(scanMs)")
             toast.show("Nothing I'm sure about here. Fill these yourself")

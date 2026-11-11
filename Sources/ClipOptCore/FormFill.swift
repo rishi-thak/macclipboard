@@ -62,17 +62,20 @@ public enum FormFiller {
         return plan
     }
 
-    /// Your saved answers first (they're answers to questions like these), then recent
-    /// single-line copies. Values already used by this fill are left out.
-    public static func jevPlan(_ plan: FormFillPlan, memory: FieldMemory, history: [ClipItem]) -> FormJevPlan? {
+    /// Your saved answers first (they're answers to questions like these), then your
+    /// profile values ("How can we reach you?" wants your email even if the Email field
+    /// already has it), then recent single-line copies.
+    public static func jevPlan(_ plan: FormFillPlan, memory: FieldMemory, profile: Profile,
+                               history: [ClipItem]) -> FormJevPlan? {
         let fields = Array(plan.unclear.prefix(maxJevFields))
         guard !fields.isEmpty else { return nil }
 
-        var seen = Set(plan.fills.values.map(\.text))
+        var seen = Set<String>()
         var candidates: [String] = []
         let saved = memory.answers.values.sorted { $0.savedAt > $1.savedAt }.map(\.text)
+        let mine = profile.entries.filter { $0.kind != .firstName && $0.kind != .lastName }.map(\.value)
         let copied = history.map(\.text).filter { !$0.contains("\n") && $0.trimmed.count <= 120 }
-        for text in saved + copied where candidates.count < maxJevCandidates {
+        for text in saved + mine + copied where candidates.count < maxJevCandidates {
             let value = text.trimmed
             if !value.isEmpty, seen.insert(value).inserted { candidates.append(value) }
         }

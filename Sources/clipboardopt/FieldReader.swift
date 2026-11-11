@@ -131,10 +131,10 @@ final class FieldReader {
 
     // MARK: - Nearby label text
 
-    /// Static text just before the field, at the parent and grandparent level.
-    /// Catches forms that show a label without linking it to the input.
+    /// The closest text just before the field, at the parent and then grandparent level.
+    /// Catches forms that show a label without linking it to the input. Only the closest
+    /// piece is used: anything further up is usually the previous field's hint or error.
     private func nearbyText(_ element: AXUIElement) -> String {
-        var pieces: [String] = []
         var child = element
         for _ in 0..<2 {
             guard let parent = elementAttribute(child, "AXParent") else { break }
@@ -142,13 +142,13 @@ final class FieldReader {
             if let index = siblings.firstIndex(where: { CFEqual($0, child) }) {
                 for sibling in siblings[..<index].suffix(3).reversed() {
                     let text = staticText(in: sibling)
-                    if !text.isEmpty { pieces.append(text) }
+                    // Skip a lone "*" or "✱": it marks the field as required, it isn't the label.
+                    if text.contains(where: \.isLetter) { return String(text.prefix(200)) }
                 }
             }
-            if !pieces.isEmpty { break }
             child = parent
         }
-        return String(unique(pieces.reversed()).joined(separator: " ").prefix(200))
+        return ""
     }
 
     private func staticText(in element: AXUIElement) -> String {

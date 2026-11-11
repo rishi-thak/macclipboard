@@ -89,7 +89,8 @@ public enum FieldClassifier {
         (.phone, #"\b(phone|mobile|cell|telephone|tel)\b"#),
         (.firstName, #"\b(first|given) ?name\b"#),
         (.lastName, #"\b(last|family|sur) ?name\b"#),
-        (.fullName, #"\b(full|legal|your) name\b|^name$"#),
+        // "Your name" only as the whole label: "How do you pronounce your name?" isn't a name field.
+        (.fullName, #"\b(full|legal|preferred) name\b|^(your |candidate |applicant )?name$"#),
         (.website, #"\b(website|web site|portfolio|personal site|homepage|personal url)\b"#),
         (.zip, #"\b(zip|zip ?code|postal ?code|post ?code|postcode)\b"#),
         (.school, #"\b(school|university|college|institution)\b"#),

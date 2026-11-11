@@ -28,16 +28,18 @@ import Testing
         #expect(plan.skipped == [7])
     }
 
-    @Test func jevGetsSavedAnswersThenCopiesButNotValuesAlreadyUsed() {
+    @Test func jevGetsSavedAnswersThenProfileThenCopies() {
         var memory = FieldMemory()
         memory.remember("May 2027", for: grad)
         memory.remember("Bay Area", for: FieldInfo(label: "Preferred location"), at: Date(timeIntervalSince1970: 0))
         let plan = FormFiller.planLocally(fields: fields, profile: profile, memory: memory)
         let history = ["(415) 555-0134", "line one\nline two", "Jane"].map { ClipItem(text: $0, kind: ItemClassifier.classify($0), copiedAt: Date()) }
-        let jevPlan = FormFiller.jevPlan(plan, memory: memory, history: history)
+        let jevPlan = FormFiller.jevPlan(plan, memory: memory, profile: profile, history: history)
         #expect(jevPlan?.fields == [2, 6])
-        // "May 2027" and "Jane" already fill fields; the multi-line copy is skipped.
-        #expect(jevPlan?.candidates == ["Bay Area", "(415) 555-0134"])
+        // Saved answers (newest first), profile values minus first/last name, then
+        // single-line copies; the multi-line copy is skipped.
+        #expect(jevPlan?.candidates == ["May 2027", "Bay Area", "me@example.com", "https://www.linkedin.com/in/jane-doe",
+                                        "Jane Doe", "12345", "Example State University", "(415) 555-0134", "Jane"])
     }
 
     @Test func onlyOneClearWinnerFills() {
@@ -56,5 +58,15 @@ import Testing
         let questions = try #require(json["questions"] as? [String: [String: String]])
         #expect(questions.count == 4)
         #expect(questions["f1_c0"]?["instructions"] == "Does the user want to paste \"Bay Area\" into `field_1`?")
+    }
+}
+
+@Suite struct NameRuleTests {
+    @Test(arguments: [
+        ("Name", FieldKind.fullName), ("Your name", .fullName), ("Full Name", .fullName), ("Legal name", .fullName),
+        ("How do you pronounce your name?", .unknown), ("Mobile number", .phone),
+    ])
+    func classifies(_ label: String, _ expected: FieldKind) {
+        #expect(FieldClassifier.classify(FieldInfo(label: label)) == expected)
     }
 }
