@@ -199,7 +199,8 @@ final class SmartPasteCoordinator {
     private func showPanel(candidates: [Candidate], highlight: Candidate?, note: String?, anchor: CGRect?,
                            learn: FieldKind?, replace: Bool = false, question: FieldInfo? = nil) {
         var ordered = candidates
-        if let highlight, let index = ordered.firstIndex(of: highlight) {
+        // Match by text: the panel may show a copy as your saved value.
+        if let highlight, let index = ordered.firstIndex(where: { $0.text == highlight.text }) {
             ordered.insert(ordered.remove(at: index), at: 0)
         }
         // Profile values for other fields would only be noise here.
@@ -220,7 +221,14 @@ final class SmartPasteCoordinator {
                                 : "Your pick is saved as your \(learn.displayName)"
             header = note.map { "\($0) · \(hint)" } ?? hint
         }
-        let entries = ordered.map { HistoryPanelController.Entry(text: $0.text, detail: Self.detail(for: $0)) }
+        let entries = ordered.map { candidate in
+            let saved: Bool
+            switch candidate.source {
+            case .profile, .remembered: saved = true
+            case .history: saved = false
+            }
+            return HistoryPanelController.Entry(text: candidate.text, detail: Self.detail(for: candidate), saved: saved)
+        }
         panel.show(entries: entries, selected: 0, note: header, anchor: anchor) { [weak self] entry in
             Task { @MainActor [weak self] in
                 // Let Safari's field take focus back before pasting.
@@ -277,14 +285,14 @@ final class SmartPasteCoordinator {
     private static func detail(for candidate: Candidate) -> String {
         switch candidate.source {
         case .profile(let kind):
-            return "Profile · \(kind.rawValue)"
+            return "★ Saved · \(kind.displayName)"
         case .history:
             guard let date = candidate.copiedAt else { return "Copied" }
             let formatter = RelativeDateTimeFormatter()
             formatter.unitsStyle = .short
             return "Copied " + formatter.localizedString(for: date, relativeTo: Date())
         case .remembered:
-            return "Your answer last time"
+            return "★ Your answer last time"
         }
     }
 

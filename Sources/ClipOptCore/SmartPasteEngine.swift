@@ -86,17 +86,40 @@ public enum SmartPasteEngine {
     /// What the panel lists for this field: only values of the field's kind
     /// (3 emails for an email field, not your links too). Unknown fields, or
     /// fields with nothing of their kind copied, list everything.
-    public static func panelCandidates(_ input: SmartPasteInput) -> [Candidate] {
+    ///
+    /// Your saved values come first (best Jev score first when there are scores), so when
+    /// it's unsure you can pick your LinkedIn or GitHub without hunting through copies.
+    public static func panelCandidates(_ input: SmartPasteInput, scores: [String: Double] = [:]) -> [Candidate] {
         let all = allCandidates(input)
         let kind = input.fieldKind
-        guard kind != .unknown else { return all }
+        guard kind != .unknown else { return savedFirst(all, profile: input.profile, scores: scores) }
         let filtered = all.filter { candidate in
             if case .profile(let profileKind) = candidate.source {
                 return profileKind == kind
             }
             return pickFits(candidate.text, kind: kind)
         }
-        return filtered.isEmpty ? all : filtered
+        return savedFirst(filtered.isEmpty ? all : filtered, profile: input.profile, scores: scores)
+    }
+
+    /// Your earlier answer, then saved profile values, then copies in recency order.
+    /// A copy that's also a saved value is shown as saved.
+    public static func savedFirst(_ candidates: [Candidate], profile: Profile, scores: [String: Double] = [:]) -> [Candidate] {
+        var kindByText: [String: FieldKind] = [:]
+        for entry in profile.entries where kindByText[entry.value] == nil { kindByText[entry.value] = entry.kind }
+        let relabeled = candidates.map { candidate -> Candidate in
+            if case .history = candidate.source, let kind = kindByText[candidate.text.trimmed] {
+                return Candidate(text: candidate.text, source: .profile(kind), copiedAt: candidate.copiedAt)
+            }
+            return candidate
+        }
+        let remembered = relabeled.filter { $0.source == .remembered }
+        let saved = relabeled.enumerated()
+            .filter { if case .profile = $0.element.source { return true } else { return false } }
+            .sorted { (scores[$0.element.text] ?? 0, -$0.offset) > (scores[$1.element.text] ?? 0, -$1.offset) }
+            .map(\.element)
+        let copies = relabeled.filter { if case .history = $0.source { return true } else { return false } }
+        return remembered + saved + copies
     }
 
     public static func decideLocally(_ input: SmartPasteInput) -> PasteDecision {
@@ -184,13 +207,15 @@ public enum SmartPasteEngine {
                               note: "No \(kind.displayName) copied yet")
         }
         let best = scores.indices.max { scores[$0] < scores[$1] }.map { plan.candidates[$0] }
+        var scoreByText: [String: Double] = [:]
+        for (index, candidate) in plan.candidates.enumerated() { scoreByText[candidate.text] = scores[index] }
         let note: String
         if countable, plan.candidates.count > 1 {
             note = "\(plan.candidates.count) \(kind.displayName)s copied. Which one?"
         } else {
             note = winners.count > 1 ? "A few of these could fit" : "Not sure which one fits"
         }
-        return .showPanel(highlight: best, candidates: panelCandidates(input), note: note)
+        return .showPanel(highlight: best, candidates: panelCandidates(input, scores: scoreByText), note: note)
     }
 
     /// The field kind a panel pick should be saved as, when the profile has no value for it yet.

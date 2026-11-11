@@ -21,7 +21,7 @@ private final class RowView: NSView {
     private let detail = NSTextField(labelWithString: "")
     private let number = NSTextField(labelWithString: "")
 
-    init(index: Int, text: String, detailText: String) {
+    init(index: Int, text: String, detailText: String, saved: Bool = false) {
         self.index = index
         super.init(frame: .zero)
         wantsLayer = true
@@ -40,7 +40,7 @@ private final class RowView: NSView {
 
         detail.stringValue = detailText
         detail.font = .systemFont(ofSize: 11)
-        detail.textColor = .secondaryLabelColor
+        detail.textColor = saved ? .controlAccentColor : .secondaryLabelColor
         detail.lineBreakMode = .byTruncatingTail
 
         let texts = NSStackView(views: [title, detail])
@@ -80,6 +80,8 @@ final class HistoryPanelController: NSObject, NSWindowDelegate {
     struct Entry {
         let text: String
         let detail: String
+        /// Your saved value or earlier answer: its detail line is drawn in the accent color.
+        var saved = false
     }
 
     private var panel: KeyPanel?
@@ -112,7 +114,7 @@ final class HistoryPanelController: NSObject, NSWindowDelegate {
         stack.setCustomSpacing(6, after: header)
 
         rows = entries.enumerated().map { index, entry in
-            let row = RowView(index: index, text: entry.text, detailText: entry.detail)
+            let row = RowView(index: index, text: entry.text, detailText: entry.detail, saved: entry.saved)
             row.onClick = { [weak self] index in self?.pick(index) }
             return row
         }
