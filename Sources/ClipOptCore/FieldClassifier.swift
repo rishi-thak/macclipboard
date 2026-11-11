@@ -97,7 +97,7 @@ public enum FieldClassifier {
         (.lastName, #"\b(last|family|sur) ?name\b"#),
         // "Your name" only as the whole label: "How do you pronounce your name?" isn't a name field.
         (.fullName, #"\b(full|legal|preferred) name\b|^(your |candidate |applicant )?name$"#),
-        (.website, #"\b(website|web site|portfolio|personal site|homepage|personal url)\b"#),
+        (.website, #"\b(website|web site|portfolio|personal site|homepage|personal url)\b|\b(see|view) (your|some of your) work\b|\bwork samples?\b|\bsamples? of your work\b"#),
         (.zip, #"\b(zip|zip ?code|postal ?code|post ?code|postcode)\b"#),
         (.school, #"\b(school|university|college|institution)\b"#),
         // Not "graduate" alone: "Are you a recent graduate?" is a yes/no question.
@@ -136,13 +136,18 @@ public enum FieldClassifier {
             if kinds.contains(.graduation), kinds.contains(.graduationYear) {
                 kinds.remove(text.contains("month") ? .graduationYear : .graduation)
             }
+            // "Website, LinkedIn or GitHub": any of your links works, and LinkedIn is the default.
+            if kinds.count > 1, kinds.contains(.linkedin), kinds.isSubset(of: [.linkedin, .website, .github]) {
+                kinds = [.linkedin]
+            }
             // "School email", "University website": the school word only describes the other field.
             if kinds.count > 1 { kinds.remove(.school) }
             if kinds.count == 1, let kind = kinds.first { return kind }
             if kinds.count > 1 { return .unknown }
         }
         let primary = normalize(sources[0] + " " + field.identifier)
-        if ItemClassifier.matches(primary, #"\b(urls?|links?)\b"#) { return .website }
+        // A bare "URL"/"link" label, or a placeholder like "https://": some web address, so your website.
+        if ItemClassifier.matches(primary, #"\b(urls?|links?|https?)\b"#) { return .website }
         return .unknown
     }
 
