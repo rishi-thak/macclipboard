@@ -17,7 +17,8 @@ public struct FieldMemory: Codable, Sendable, Equatable {
     /// The question's wording, lowercased, letters and digits only. Nil when the
     /// field says nothing about itself, since then there's nothing to match on.
     public static func key(for field: FieldInfo) -> String? {
-        guard !FieldClassifier.isSensitive(field) else { return nil }
+        // Past-job fields ("Description", "Location") repeat per entry: an answer for one isn't for the next.
+        guard !FieldClassifier.isSensitive(field), !field.isInHistorySection else { return nil }
         let question = [field.label, field.nearbyText, field.placeholder, field.help]
             .map(\.trimmed)
             .first { !$0.isEmpty && !genericPrompts.contains(words($0)) }

@@ -44,8 +44,31 @@ final class FieldReader {
             nearbyText: nearbyText(element),
             pageURL: pageURL,
             pageTitle: pageTitle,
-            appName: NSWorkspace.shared.frontmostApplication?.localizedName ?? ""
+            appName: NSWorkspace.shared.frontmostApplication?.localizedName ?? "",
+            section: sectionHeading(element)
         )
+    }
+
+    /// The closest heading above the field: walks up a few levels and looks back through
+    /// earlier siblings (and their first children) for an AXHeading.
+    private func sectionHeading(_ element: AXUIElement) -> String {
+        var child = element
+        for _ in 0..<8 {
+            guard let parent = elementAttribute(child, "AXParent"), string(parent, "AXRole") != "AXWebArea" else { break }
+            let siblings = elementArray(parent, "AXChildren")
+            if let index = siblings.firstIndex(where: { CFEqual($0, child) }) {
+                for sibling in siblings[..<index].suffix(40).reversed() {
+                    let candidates = [sibling] + elementArray(sibling, "AXChildren").prefix(3)
+                    if let heading = candidates.first(where: { string($0, "AXRole") == "AXHeading" }) {
+                        let text = [string(heading, "AXTitle"), staticText(in: heading), string(heading, "AXDescription")]
+                            .first { !$0.isEmpty } ?? ""
+                        if !text.isEmpty { return String(text.prefix(100)) }
+                    }
+                }
+            }
+            child = parent
+        }
+        return ""
     }
 
     // MARK: - Whole form

@@ -72,10 +72,12 @@ public struct FieldInfo: Sendable, Equatable, Codable {
     public var pageURL: String
     public var pageTitle: String
     public var appName: String
+    /// The heading of the form section the field sits in, like "Work experience".
+    public var section: String
 
     public init(label: String = "", placeholder: String = "", help: String = "",
                 identifier: String = "", nearbyText: String = "", pageURL: String = "",
-                pageTitle: String = "", appName: String = "") {
+                pageTitle: String = "", appName: String = "", section: String = "") {
         self.label = label
         self.placeholder = placeholder
         self.help = help
@@ -84,6 +86,18 @@ public struct FieldInfo: Sendable, Equatable, Codable {
         self.pageURL = pageURL
         self.pageTitle = pageTitle
         self.appName = appName
+        self.section = section
+    }
+
+    /// Inside "Work experience", "Education", "Projects" and the like, fields describe a
+    /// past job or school, not you: "Location" there is where the job was.
+    /// Only short headings count, so a page title like "Apply: Experience Designer Internship"
+    /// doesn't switch off filling for the whole form.
+    public var isInHistorySection: Bool {
+        let heading = FieldClassifier.normalize(section)
+        guard !heading.isEmpty, heading.split(separator: " ").count <= 4 else { return false }
+        return ItemClassifier.matches(heading,
+            #"^(work |professional |previous |relevant )?(experience|employment|work history|education|references?|volunteer\w*)( history| experience)?( \d+)?$"#)
     }
 
     /// True when there's anything a person could use to tell what the field wants.
@@ -133,7 +147,15 @@ public enum FieldClassifier {
 
     /// Checks the label first, then the field's id, then nearby text.
     /// Two kinds in the same source ("Website, LinkedIn or GitHub") means unclear.
+    /// Your home address only fills fields about you, not a past job's location.
+    static let homeKinds: Set<FieldKind> = [.address, .street, .city, .state, .location, .zip]
+
     public static func classify(_ field: FieldInfo) -> FieldKind {
+        let kind = classifyByWords(field)
+        return field.isInHistorySection && homeKinds.contains(kind) ? .unknown : kind
+    }
+
+    private static func classifyByWords(_ field: FieldInfo) -> FieldKind {
         if isSensitive(field) { return .unknown }
         let sources = [
             [field.label, field.placeholder, field.help].joined(separator: " "),

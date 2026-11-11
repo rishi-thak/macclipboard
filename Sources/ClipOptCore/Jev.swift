@@ -90,6 +90,7 @@ public enum JevRequestBuilder {
         put(&state, "help_text", field.help)
         put(&state, "html_id", field.identifier)
         put(&state, "text_near_field", field.nearbyText)
+        put(&state, "form_section", field.section)
         return state
     }
 

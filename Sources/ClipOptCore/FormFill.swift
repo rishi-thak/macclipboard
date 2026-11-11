@@ -57,6 +57,9 @@ public enum FormFiller {
                 plan.fills[index] = Fill(text: value, source: .profile(kind))
             } else if let answer = memory.answer(for: field) {
                 plan.fills[index] = Fill(text: answer, source: .remembered)
+            } else if field.isInHistorySection {
+                // A past job's title, company or dates: nothing saved can answer these.
+                plan.skipped.append(index)
             } else if FieldMemory.key(for: field) != nil {
                 plan.unclear.append(index)
             } else {
