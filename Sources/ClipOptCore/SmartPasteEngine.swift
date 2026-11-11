@@ -104,6 +104,10 @@ public enum SmartPasteEngine {
         let kind = input.fieldKind
         let askJob = input.context == .unknown
 
+        if FieldClassifier.isSensitive(input.field) {
+            return .showPanel(highlight: nil, candidates: all, note: "Looks like a password field, so pick one yourself")
+        }
+
         guard kind != .unknown else {
             if let remembered = input.remembered {
                 return .paste(Candidate(text: remembered, source: .remembered))

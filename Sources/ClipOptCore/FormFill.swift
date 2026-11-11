@@ -48,6 +48,10 @@ public enum FormFiller {
     public static func planLocally(fields: [FieldInfo], profile: Profile, memory: FieldMemory) -> FormFillPlan {
         var plan = FormFillPlan()
         for (index, field) in fields.enumerated() {
+            if FieldClassifier.isSensitive(field) {
+                plan.skipped.append(index)
+                continue
+            }
             let kind = FieldClassifier.classify(field)
             if let value = profile.value(for: kind) {
                 plan.fills[index] = Fill(text: value, source: .profile(kind))

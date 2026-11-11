@@ -123,9 +123,18 @@ public enum FieldClassifier {
         (.location, #"\b(location|current location|where are you located|where do you live)\b"#),
     ]
 
+    /// Fields for secrets, even when they're plain text boxes ("Portfolio Password").
+    /// Never filled, never sent to Jev, never remembered.
+    public static func isSensitive(_ field: FieldInfo) -> Bool {
+        let text = normalize([field.label, field.placeholder, field.help, field.identifier, field.nearbyText]
+            .joined(separator: " "))
+        return ItemClassifier.matches(text, #"\b(pass ?words?|pass ?codes?|pass ?phrases?|pins?|secrets?|otp|one time code|verification code|security (code|answer|question)|cvv|cvc|card number|credit card|ssn|social security|api key|access token|tokens?)\b"#)
+    }
+
     /// Checks the label first, then the field's id, then nearby text.
     /// Two kinds in the same source ("Website, LinkedIn or GitHub") means unclear.
     public static func classify(_ field: FieldInfo) -> FieldKind {
+        if isSensitive(field) { return .unknown }
         let sources = [
             [field.label, field.placeholder, field.help].joined(separator: " "),
             field.identifier,
