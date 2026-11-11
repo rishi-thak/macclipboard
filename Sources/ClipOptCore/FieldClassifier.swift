@@ -177,9 +177,10 @@ public enum FieldClassifier {
                 kinds.subtract([.city, .state])
                 kinds.insert(.location)
             }
-            // "Website, LinkedIn or GitHub": any of your links works, and LinkedIn is the default.
-            if kinds.count > 1, kinds.contains(.linkedin), kinds.isSubset(of: [.linkedin, .website, .github]) {
-                kinds = [.linkedin]
+            // Several link types named ("Website, LinkedIn or GitHub", "Website link (github,
+            // portfolio, other)"): any of your links works. LinkedIn first, then your website.
+            if kinds.count > 1, kinds.isSubset(of: [.linkedin, .website, .github]) {
+                kinds = kinds.contains(.linkedin) ? [.linkedin] : kinds.contains(.website) ? [.website] : kinds
             }
             // "School email", "University website": the school word only describes the other field.
             if kinds.count > 1 { kinds.remove(.school) }
