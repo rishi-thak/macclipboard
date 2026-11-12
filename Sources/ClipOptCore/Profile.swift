@@ -7,6 +7,7 @@ public struct Profile: Codable, Sendable, Equatable {
     public var phone: String?
     public var linkedin: String?
     public var github: String?
+    public var twitter: String?
     public var website: String?
     public var firstName: String?
     public var lastName: String?
@@ -20,11 +21,14 @@ public struct Profile: Codable, Sendable, Equatable {
     public var street: String?
     public var city: String?
     public var state: String?
+    /// "Current location" when it isn't your home city. Falls back to "City, ST".
+    public var location: String?
 
     public init(email: String? = nil, phone: String? = nil, linkedin: String? = nil,
                 github: String? = nil, website: String? = nil, firstName: String? = nil,
                 lastName: String? = nil, fullName: String? = nil, zip: String? = nil, school: String? = nil,
-                graduation: String? = nil, street: String? = nil, city: String? = nil, state: String? = nil) {
+                graduation: String? = nil, street: String? = nil, city: String? = nil, state: String? = nil,
+                twitter: String? = nil, location: String? = nil) {
         self.email = email
         self.phone = phone
         self.linkedin = linkedin
@@ -39,6 +43,8 @@ public struct Profile: Codable, Sendable, Equatable {
         self.street = street
         self.city = city
         self.state = state
+        self.twitter = twitter
+        self.location = location
     }
 
     public func value(for kind: FieldKind) -> String? {
@@ -48,6 +54,7 @@ public struct Profile: Codable, Sendable, Equatable {
         case .phone: raw = phone
         case .linkedin: raw = linkedin
         case .github: raw = github
+        case .twitter: raw = twitter
         case .website: raw = website
         case .firstName: raw = firstName
         case .lastName: raw = lastName
@@ -64,7 +71,7 @@ public struct Profile: Codable, Sendable, Equatable {
         case .city: raw = city
         case .state: raw = state
         case .location:
-            raw = [city, state].compactMap(nonEmpty).joined(separator: ", ")
+            raw = nonEmpty(location) ?? [city, state].compactMap(nonEmpty).joined(separator: ", ")
         case .address:
             let cityLine = [city, state, zip].compactMap(nonEmpty).joined(separator: " ")
             raw = nonEmpty(street) == nil ? nil : [street, cityLine].compactMap(nonEmpty).joined(separator: ", ")
@@ -79,6 +86,7 @@ public struct Profile: Codable, Sendable, Equatable {
         case .phone: phone = value
         case .linkedin: linkedin = value
         case .github: github = value
+        case .twitter: twitter = value
         case .website: website = value
         case .firstName: firstName = value
         case .lastName: lastName = value
@@ -90,8 +98,9 @@ public struct Profile: Codable, Sendable, Equatable {
         case .street: street = value
         case .city: city = value
         case .state: state = value
+        case .location: location = value
         // Put together from parts; a whole-address pick isn't split back up.
-        case .address, .location: break
+        case .address: break
         case .unknown: break
         }
     }
@@ -105,8 +114,8 @@ public struct Profile: Codable, Sendable, Equatable {
 
     /// Every value that's set, in a fixed order.
     public var entries: [(kind: FieldKind, value: String)] {
-        let kinds: [FieldKind] = [.email, .phone, .linkedin, .github, .website, .fullName, .firstName, .lastName,
-                                .zip, .school, .graduation, .address]
+        let kinds: [FieldKind] = [.email, .phone, .linkedin, .github, .twitter, .website, .fullName, .firstName, .lastName,
+                                .zip, .school, .graduation, .address, .location]
         return kinds.compactMap { kind in value(for: kind).map { (kind, $0) } }
     }
 
@@ -123,7 +132,7 @@ public struct Profile: Codable, Sendable, Equatable {
         guard !FileManager.default.fileExists(atPath: url.path) else { return }
         let template = Profile(email: "", phone: "", linkedin: "", github: "", website: "",
                                firstName: "", lastName: "", fullName: "", zip: "", school: "", graduation: "",
-                               street: "", city: "", state: "")
+                               street: "", city: "", state: "", twitter: "", location: "")
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         try encoder.encode(template).write(to: url, options: .atomic)

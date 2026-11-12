@@ -6,6 +6,7 @@ public enum FieldKind: String, Codable, Sendable, CaseIterable {
     case phone
     case linkedin
     case github
+    case twitter
     case website
     case firstName
     case lastName
@@ -29,6 +30,7 @@ public enum FieldKind: String, Codable, Sendable, CaseIterable {
         case .phone: return "phone number"
         case .linkedin: return "LinkedIn URL"
         case .github: return "GitHub URL"
+        case .twitter: return "X/Twitter link"
         case .website: return "website"
         case .firstName: return "first name"
         case .lastName: return "last name"
@@ -53,6 +55,7 @@ public enum FieldKind: String, Codable, Sendable, CaseIterable {
         case .phone: return [.phone]
         case .linkedin: return [.linkedin]
         case .github: return [.github]
+        case .twitter: return [.twitter]
         case .website: return [.url]
         case .firstName, .lastName, .fullName, .zip, .school, .graduation, .graduationYear,
              .address, .street, .city, .state, .location, .unknown: return []
@@ -115,6 +118,8 @@ public enum FieldClassifier {
     private static let rules: [(kind: FieldKind, pattern: String)] = [
         (.linkedin, #"\blinked ?in\b"#),
         (.github, #"\bgit ?hub\b"#),
+        // "X" alone only as the whole label or next to profile words, so "X" in other text doesn't count.
+        (.twitter, #"\btwitter\b|\bx com\b|^x$|\bx (profile|handle|url|link|account|username)\b"#),
         (.email, #"\be ?mail\b"#),
         // "How can we reach you?", "Contact info": your email. A phone word wins (below).
         (.email, #"\b(reach|contact) (you|me)\b|\bcontact (info|information|details)\b|\bbest way to (reach|contact)\b"#),
@@ -201,7 +206,7 @@ public enum FieldClassifier {
             }
             // Several link types named ("Website, LinkedIn or GitHub", "Website link (github,
             // portfolio, other)"): any of your links works. LinkedIn first, then your website.
-            if kinds.count > 1, kinds.isSubset(of: [.linkedin, .website, .github]) {
+            if kinds.count > 1, kinds.isSubset(of: [.linkedin, .website, .github, .twitter]) {
                 kinds = kinds.contains(.linkedin) ? [.linkedin] : kinds.contains(.website) ? [.website] : kinds
             }
             // "School email", "University website": the school word only describes the other field.

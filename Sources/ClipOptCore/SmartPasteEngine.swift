@@ -221,8 +221,8 @@ public enum SmartPasteEngine {
     /// The field kind a panel pick should be saved as, when the profile has no value for it yet.
     public static func learnableKind(_ input: SmartPasteInput) -> FieldKind? {
         let kind = input.fieldKind
-        // Address and location are put together from parts, so a pick can't be saved as one.
-        guard ![.unknown, .address, .location].contains(kind), input.profile.value(for: kind) == nil else { return nil }
+        // The full address is put together from parts, so a pick can't be saved as one.
+        guard ![.unknown, .address].contains(kind), input.profile.value(for: kind) == nil else { return nil }
         return kind
     }
 

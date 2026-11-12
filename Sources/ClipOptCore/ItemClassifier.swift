@@ -6,6 +6,7 @@ public enum ItemKind: String, Codable, Sendable, CaseIterable {
     case phone
     case linkedin
     case github
+    case twitter
     case url
     case other
 }
@@ -25,6 +26,7 @@ public enum ItemClassifier {
         if matches(lower, #"^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$"#) { return .email }
         if matches(lower, #"^(https?://)?([a-z]{2,3}\.)?linkedin\.com/in/[^\s/?#]+/?([?#]\S*)?$"#) { return .linkedin }
         if matches(lower, #"^(https?://)?(www\.)?github\.com/[a-z0-9\-]+(/\S*)?$"#) { return .github }
+        if matches(lower, #"^(https?://)?(www\.|mobile\.)?(twitter|x)\.com/[a-z0-9_]+/?([?#]\S*)?$"#) { return .twitter }
         if isPhone(text) { return .phone }
         if isURL(lower) { return .url }
         return .other
