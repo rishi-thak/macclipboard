@@ -16,6 +16,7 @@ public struct Profile: Codable, Sendable, Equatable {
     public var school: String?
     /// Month and year, like "June 2030". "Graduation year" fields get just the year.
     public var graduation: String?
+    public var major: String?
     /// Address parts. The full address is put together from them plus `zip`:
     /// "1 Example St, Springfield IL 62701".
     public var street: String?
@@ -28,7 +29,7 @@ public struct Profile: Codable, Sendable, Equatable {
                 github: String? = nil, website: String? = nil, firstName: String? = nil,
                 lastName: String? = nil, fullName: String? = nil, zip: String? = nil, school: String? = nil,
                 graduation: String? = nil, street: String? = nil, city: String? = nil, state: String? = nil,
-                twitter: String? = nil, location: String? = nil) {
+                twitter: String? = nil, location: String? = nil, major: String? = nil) {
         self.email = email
         self.phone = phone
         self.linkedin = linkedin
@@ -45,6 +46,7 @@ public struct Profile: Codable, Sendable, Equatable {
         self.state = state
         self.twitter = twitter
         self.location = location
+        self.major = major
     }
 
     public func value(for kind: FieldKind) -> String? {
@@ -63,6 +65,7 @@ public struct Profile: Codable, Sendable, Equatable {
         case .zip: raw = zip
         case .school: raw = school
         case .graduation: raw = graduation
+        case .major: raw = major
         case .graduationYear:
             raw = nonEmpty(graduation).flatMap { value in
                 value.range(of: #"\b(19|20)\d{2}\b"#, options: .regularExpression).map { String(value[$0]) }
@@ -94,6 +97,7 @@ public struct Profile: Codable, Sendable, Equatable {
         case .zip: zip = value
         case .school: school = value
         case .graduation: graduation = value
+        case .major: major = value
         case .graduationYear: if nonEmpty(graduation) == nil { graduation = value }
         case .street: street = value
         case .city: city = value
@@ -115,7 +119,7 @@ public struct Profile: Codable, Sendable, Equatable {
     /// Every value that's set, in a fixed order.
     public var entries: [(kind: FieldKind, value: String)] {
         let kinds: [FieldKind] = [.email, .phone, .linkedin, .github, .twitter, .website, .fullName, .firstName, .lastName,
-                                .zip, .school, .graduation, .address, .location]
+                                .zip, .school, .major, .graduation, .address, .location]
         return kinds.compactMap { kind in value(for: kind).map { (kind, $0) } }
     }
 
@@ -132,7 +136,7 @@ public struct Profile: Codable, Sendable, Equatable {
         guard !FileManager.default.fileExists(atPath: url.path) else { return }
         let template = Profile(email: "", phone: "", linkedin: "", github: "", website: "",
                                firstName: "", lastName: "", fullName: "", zip: "", school: "", graduation: "",
-                               street: "", city: "", state: "", twitter: "", location: "")
+                               street: "", city: "", state: "", twitter: "", location: "", major: "")
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         try encoder.encode(template).write(to: url, options: .atomic)

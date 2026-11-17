@@ -15,6 +15,7 @@ public enum FieldKind: String, Codable, Sendable, CaseIterable {
     case school
     case graduation
     case graduationYear
+    case major
     case address
     case street
     case city
@@ -39,6 +40,7 @@ public enum FieldKind: String, Codable, Sendable, CaseIterable {
         case .school: return "school"
         case .graduation: return "graduation date"
         case .graduationYear: return "graduation year"
+        case .major: return "field of study"
         case .address: return "address"
         case .street: return "street address"
         case .city: return "city"
@@ -57,7 +59,7 @@ public enum FieldKind: String, Codable, Sendable, CaseIterable {
         case .github: return [.github]
         case .twitter: return [.twitter]
         case .website: return [.url]
-        case .firstName, .lastName, .fullName, .zip, .school, .graduation, .graduationYear,
+        case .firstName, .lastName, .fullName, .zip, .school, .graduation, .graduationYear, .major,
              .address, .street, .city, .state, .location, .unknown: return []
         }
     }
@@ -133,6 +135,8 @@ public enum FieldClassifier {
         (.school, #"\b(school|university|college|institution)\b"#),
         // Not "graduate" alone: "Are you a recent graduate?" is a yes/no question.
         (.graduation, #"\bgraduat(ing|ion)\b|\b(when (will|do) you|expect(ed)? to) graduate\b|\bgrad date\b"#),
+        // Not "degree" alone: "Degree" asks Bachelor's or Master's.
+        (.major, #"\bmajors?\b|\b(field|area|course) of study\b|\bdegree (program|programme|subject|field)\b|\bconcentration\b|\bwhat are you studying\b|\bprogram of study\b"#),
         (.graduationYear, #"\b(graduation|grad) year\b|\byear of graduation\b|\bclass of\b"#),
         // Not "email address", "web address" or "IP address".
         (.address, #"(?<!email )(?<!e mail )(?<!web )(?<!ip )\baddress\b"#),
