@@ -17,6 +17,11 @@ public struct Profile: Codable, Sendable, Equatable {
     /// Month and year, like "June 2030". "Graduation year" fields get just the year.
     public var graduation: String?
     public var major: String?
+    public var minor: String?
+    /// The full degree ("Bachelor of Arts"); `degreeLevel` is the short form for
+    /// "Degree type" or "Highest level of education" fields.
+    public var degree: String?
+    public var degreeLevel: String?
     /// Address parts. The full address is put together from them plus `zip`:
     /// "1 Example St, Springfield IL 62701".
     public var street: String?
@@ -29,7 +34,8 @@ public struct Profile: Codable, Sendable, Equatable {
                 github: String? = nil, website: String? = nil, firstName: String? = nil,
                 lastName: String? = nil, fullName: String? = nil, zip: String? = nil, school: String? = nil,
                 graduation: String? = nil, street: String? = nil, city: String? = nil, state: String? = nil,
-                twitter: String? = nil, location: String? = nil, major: String? = nil) {
+                twitter: String? = nil, location: String? = nil, major: String? = nil,
+                minor: String? = nil, degree: String? = nil, degreeLevel: String? = nil) {
         self.email = email
         self.phone = phone
         self.linkedin = linkedin
@@ -47,6 +53,9 @@ public struct Profile: Codable, Sendable, Equatable {
         self.twitter = twitter
         self.location = location
         self.major = major
+        self.minor = minor
+        self.degree = degree
+        self.degreeLevel = degreeLevel
     }
 
     public func value(for kind: FieldKind) -> String? {
@@ -66,6 +75,9 @@ public struct Profile: Codable, Sendable, Equatable {
         case .school: raw = school
         case .graduation: raw = graduation
         case .major: raw = major
+        case .minor: raw = minor
+        case .degree: raw = degree
+        case .degreeLevel: raw = nonEmpty(degreeLevel) ?? degree
         case .graduationYear:
             raw = nonEmpty(graduation).flatMap { value in
                 value.range(of: #"\b(19|20)\d{2}\b"#, options: .regularExpression).map { String(value[$0]) }
@@ -98,6 +110,9 @@ public struct Profile: Codable, Sendable, Equatable {
         case .school: school = value
         case .graduation: graduation = value
         case .major: major = value
+        case .minor: minor = value
+        case .degree: degree = value
+        case .degreeLevel: degreeLevel = value
         case .graduationYear: if nonEmpty(graduation) == nil { graduation = value }
         case .street: street = value
         case .city: city = value
@@ -119,7 +134,7 @@ public struct Profile: Codable, Sendable, Equatable {
     /// Every value that's set, in a fixed order.
     public var entries: [(kind: FieldKind, value: String)] {
         let kinds: [FieldKind] = [.email, .phone, .linkedin, .github, .twitter, .website, .fullName, .firstName, .lastName,
-                                .zip, .school, .major, .graduation, .address, .location]
+                                .zip, .school, .degree, .major, .minor, .graduation, .address, .location]
         return kinds.compactMap { kind in value(for: kind).map { (kind, $0) } }
     }
 
@@ -136,7 +151,8 @@ public struct Profile: Codable, Sendable, Equatable {
         guard !FileManager.default.fileExists(atPath: url.path) else { return }
         let template = Profile(email: "", phone: "", linkedin: "", github: "", website: "",
                                firstName: "", lastName: "", fullName: "", zip: "", school: "", graduation: "",
-                               street: "", city: "", state: "", twitter: "", location: "", major: "")
+                               street: "", city: "", state: "", twitter: "", location: "", major: "",
+                               minor: "", degree: "", degreeLevel: "")
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
         try encoder.encode(template).write(to: url, options: .atomic)

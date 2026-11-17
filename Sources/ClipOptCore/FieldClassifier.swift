@@ -16,6 +16,9 @@ public enum FieldKind: String, Codable, Sendable, CaseIterable {
     case graduation
     case graduationYear
     case major
+    case minor
+    case degree
+    case degreeLevel
     case address
     case street
     case city
@@ -41,6 +44,9 @@ public enum FieldKind: String, Codable, Sendable, CaseIterable {
         case .graduation: return "graduation date"
         case .graduationYear: return "graduation year"
         case .major: return "field of study"
+        case .minor: return "minor"
+        case .degree: return "degree"
+        case .degreeLevel: return "degree level"
         case .address: return "address"
         case .street: return "street address"
         case .city: return "city"
@@ -59,7 +65,7 @@ public enum FieldKind: String, Codable, Sendable, CaseIterable {
         case .github: return [.github]
         case .twitter: return [.twitter]
         case .website: return [.url]
-        case .firstName, .lastName, .fullName, .zip, .school, .graduation, .graduationYear, .major,
+        case .firstName, .lastName, .fullName, .zip, .school, .graduation, .graduationYear, .major, .minor, .degree, .degreeLevel,
              .address, .street, .city, .state, .location, .unknown: return []
         }
     }
@@ -135,8 +141,10 @@ public enum FieldClassifier {
         (.school, #"\b(school|university|college|institution)\b"#),
         // Not "graduate" alone: "Are you a recent graduate?" is a yes/no question.
         (.graduation, #"\bgraduat(ing|ion)\b|\b(when (will|do) you|expect(ed)? to) graduate\b|\bgrad date\b"#),
-        // Not "degree" alone: "Degree" asks Bachelor's or Master's.
         (.major, #"\bmajors?\b|\b(field|area|course) of study\b|\bdegree (program|programme|subject|field)\b|\bconcentration\b|\bwhat are you studying\b|\bprogram of study\b"#),
+        (.minor, #"\bminors?\b"#),
+        (.degree, #"\bdegrees?\b"#),
+        (.degreeLevel, #"\b(degree|education) (level|type)\b|\blevel of (education|degree|study)\b|\bhighest (degree|education|level)\b|\btype of degree\b"#),
         (.graduationYear, #"\b(graduation|grad) year\b|\byear of graduation\b|\bclass of\b"#),
         // Not "email address", "web address" or "IP address".
         (.address, #"(?<!email )(?<!e mail )(?<!web )(?<!ip )\baddress\b"#),
@@ -185,6 +193,12 @@ public enum FieldClassifier {
             if kinds == [.email, .phone], !ItemClassifier.matches(text, #"\be ?mail\b"#) {
                 kinds = [.phone]
             }
+            // Yes/no questions ("Are you a minor?", "Do you have a degree?") aren't asking for the value.
+            if ItemClassifier.matches(text, #"^(are|do|did|have|will|is) you\b|\bunder (the age of )?18\b|\bage of majority\b"#) {
+                kinds.subtract([.minor, .degree, .degreeLevel])
+            }
+            // "Degree program" is the major; "Degree type" is the level.
+            if kinds.contains(.major) || kinds.contains(.degreeLevel) || kinds.contains(.minor) { kinds.remove(.degree) }
             // "Graduation year" also matches graduation: it wants just the year, unless the
             // text asks for the month too ("list the full month and year").
             // "What year are you in school?" wants your class year, not your graduation date.
